@@ -22,3 +22,4 @@ from . import kern_operation
 from .kern_operation import ProductKernel
 from . import polynomial
 from .polynomial import Linear
+from .summation import Summation

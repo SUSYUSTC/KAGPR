@@ -24,7 +24,6 @@ class Test(unittest.TestCase):
 
     def test(self):
         err = np.max(np.abs(self.gp.params - self.model.param_array))
-        print(err)
         self.assertTrue(err < 5e-3)
 
 

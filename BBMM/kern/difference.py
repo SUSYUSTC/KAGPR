@@ -4,7 +4,7 @@ from . import get_kern_obj
 
 
 class Difference(Kernel):
-    def __init__(self, kernel, d):
+    def __init__(self, kernel: Kernel, d):
         self.name = 'difference.Difference'
         self.default_cache = {}
         self.d = d

@@ -15,6 +15,7 @@ def make_desired_size(value: tp.Union[T, tp.List[T]], n: int) -> tp.List[T]:
     assert len(result) == n
     return result
 
+
 try:
     import cupy as cp
     gpu_available = True
@@ -28,9 +29,28 @@ def get_array_module(x):
     else:
         return np
 
+
 def print_dict(d: tp.Dict[tp.Any, tp.Any], level=1, **printoptions):
     for key in d:
         if isinstance(d[key], dict):
-            print_dict(d[key], level=level+1, **printoptions)
+            print_dict(d[key], level=level + 1, **printoptions)
         else:
-            print(' '*level*4, key, d[key], **printoptions)
+            print(' ' * level * 4, key, d[key], **printoptions)
+
+
+def split_by_onetime_number(X: np.ndarray, onetime_number: int):
+    lengths = [len(item) for item in X]
+    N = len(lengths)
+    total = 0
+    current_index = 0
+    current_total = 0
+    result = []
+    for i in range(len(lengths)):
+        total += i
+        if total - current_total > onetime_number:
+            result.append(slice(current_index, i + 1))
+            current_index = i + 1
+            current_total = total
+    if current_index != N:
+        result.append(slice(current_index, N))
+    return result
