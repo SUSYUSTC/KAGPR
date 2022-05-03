@@ -27,7 +27,7 @@ class Test(unittest.TestCase):
         for i in range(N):
             for j in range(N):
                 err = np.abs(K[i, j] - np.sum(K_full[cumsum[i]:cumsum[i + 1], cumsum[j]: cumsum[j + 1]]))
-                self.assertTrue(err < 1e-12)
+                self.assertTrue(err < 1e-10)
         gp = BBMM.GP(X_train, Y_train, kernel_summation, 1e-4)
         gp.optimize(messages=False)
         pred_train = gp.predict(X_train)

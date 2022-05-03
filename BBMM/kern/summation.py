@@ -20,7 +20,19 @@ class Summation(Kernel):
             def func(X, X2=None, i=i, **kwargs):
                 return self.dK_dp(i, X, X2, **kwargs)
             self.dK_dps.append(func)
+        self.set_onetime_number()
         super().__init__()
+
+    def set_onetime_number(self, n=5000):
+        self.onetime_number = n
+
+    def sum_by_length(self, K, lengths1, lengths2):
+        assert K.shape == (np.sum(lengths1), np.sum(lengths2))
+        indices1 = np.cumsum(lengths1)
+        indices2 = np.cumsum(lengths2)
+        K = np.diff(np.cumsum(K, axis=0)[indices1-1, :], prepend=0, axis=0)
+        K = np.diff(np.cumsum(K, axis=1)[:, indices2-1], prepend=0, axis=1)
+        return K
 
     def _fake_K(self, method, X, X2=None):
         if X2 is None:
@@ -28,17 +40,15 @@ class Summation(Kernel):
         xp = utils.get_array_module(X)
         N1 = len(X)
         N2 = len(X2)
-        #lengths1 = np.array([len(item) for item in X])
-        #lengths2 = np.array([len(item) for item in X2])
-        #split1 = utils.split_by_onetime_number(X)
-        #split2 = utils.split_by_onetime_number(X2)
-        #for slic1 in split1:
-        #    for slic2 in split2:
-        #        K = self.kernel.K(np.concatenate(X[slic1]), np.concatenate(X2[slic2]))
+        lengths1 = np.array([len(item) for item in X])
+        lengths2 = np.array([len(item) for item in X2])
+        split1 = utils.split_by_onetime_number(X, self.onetime_number)
+        split2 = utils.split_by_onetime_number(X2, self.onetime_number)
         result = xp.zeros((N1, N2))
-        for i in range(N1):
-            for j in range(N2):
-                result[i, j] = xp.sum(method(X[i], X2[j]))
+        for slic1 in split1:
+            for slic2 in split2:
+                K = self.kernel.K(np.concatenate(X[slic1]), np.concatenate(X2[slic2]))
+                result[slic1, slic2] = self.sum_by_length(K, lengths1[slic1], lengths2[slic2])
         return result
 
     @Cache('g')
