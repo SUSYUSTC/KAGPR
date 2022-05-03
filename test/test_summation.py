@@ -8,6 +8,9 @@ def func(x):
     return np.sum(np.sin(np.sum(x, axis=1)))
 
 
+params_ref = np.array([3.47555621e-01, 9.76080792e-01, 1.00000550e-04])
+
+
 class Test(unittest.TestCase):
     def run(self, GPU):
         np.random.seed(0)
@@ -28,8 +31,17 @@ class Test(unittest.TestCase):
             for j in range(N):
                 err = np.abs(K[i, j] - np.sum(K_full[cumsum[i]:cumsum[i + 1], cumsum[j]: cumsum[j + 1]]))
                 self.assertTrue(err < 1e-10)
+        for p in range(len(kernel_summation.ps)):
+            K_full = kernel.dK_dps[p](np.concatenate(X_train), np.concatenate(X_test))
+            K = kernel_summation.dK_dps[p](X_train, X_test)
+            for i in range(N):
+                for j in range(N):
+                    err = np.abs(K[i, j] - np.sum(K_full[cumsum[i]:cumsum[i + 1], cumsum[j]: cumsum[j + 1]]))
+                    self.assertTrue(err < 1e-10)
+
         gp = BBMM.GP(X_train, Y_train, kernel_summation, 1e-4, GPU=GPU)
         gp.optimize(messages=False)
+        self.assertTrue(np.max(np.abs(gp.params / params_ref - 1)) < 1e-4)
         pred_train = gp.predict(X_train)
         err = np.max(np.abs(pred_train - Y_train))
         self.assertTrue(err < 2e-4)

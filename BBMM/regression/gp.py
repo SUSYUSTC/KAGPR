@@ -149,6 +149,7 @@ class GP(object):
 
     def opt_callback(self, x):
         if self.messages:
+            #print('gradient', self.transform_gradient)
             print('-ll', np.format_float_scientific(-self.ll, precision=6), 'gradient', np.linalg.norm(self.transform_gradient), file=self.file, flush=True)
             print(file=self.file, flush=True)
         self.saved_ps = list(map(lambda p: p.value, self.kernel.ps))

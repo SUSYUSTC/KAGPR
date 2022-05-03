@@ -48,7 +48,7 @@ class Summation(Kernel):
         result = xp.zeros((N1, N2))
         for slic1 in split1:
             for slic2 in split2:
-                K = self.kernel.K(xp.concatenate(X[slic1]), xp.concatenate(X2[slic2]))
+                K = method(xp.concatenate(X[slic1]), xp.concatenate(X2[slic2]))
                 tmp = self.sum_by_length(K, lengths1[slic1], lengths2[slic2])
                 result[slic1, slic2] = tmp
         return result
