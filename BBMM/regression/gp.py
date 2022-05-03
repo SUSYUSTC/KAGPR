@@ -31,7 +31,8 @@ class GP(object):
             import scipy
             self.xp = np
             self.xp_solve_triangular = scipy.linalg.solve_triangular
-        self.X = self.xp.array(X).copy()
+        self.X = utils.apply_recursively(self.xp.array, X)
+        #self.X = self.xp.array(X).copy()
         self.Y = self.xp.array(Y).copy()
         if file is None:
             self.file = sys.__stdout__
@@ -67,7 +68,7 @@ class GP(object):
         if self.GPU:
             data = {
                 'kernel': self.kernel.to_dict(),
-                'X': self.xp.asnumpy(self.X),
+                'X': utils.apply_recursively(self.xp.asnumpy, self.X),
                 'Y': self.xp.asnumpy(self.Y),
                 'w': self.xp.asnumpy(self.w),
                 'noise': self.noise.values,
@@ -106,7 +107,8 @@ class GP(object):
     def predict(self, X: np.ndarray, training: bool = False) -> np.ndarray:
         self.kernel.clear_cache()
         if self.GPU:
-            result = self.xp.asnumpy(self.kernel.K(self.xp.asarray(X), self.X).dot(self.w))
+            X_GPU = utils.apply_recursively(self.xp.array, X)
+            result = self.xp.asnumpy(self.kernel.K(X_GPU, self.X).dot(self.w))
             if training:
                 result += self.xp.asnumpy(self.w) * self.noise.get_diag_reg(self.likelihood_splits)[:, None]
             return result

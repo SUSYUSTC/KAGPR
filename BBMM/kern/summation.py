@@ -28,16 +28,17 @@ class Summation(Kernel):
 
     def sum_by_length(self, K, lengths1, lengths2):
         assert K.shape == (np.sum(lengths1), np.sum(lengths2))
-        indices1 = np.cumsum(lengths1)
-        indices2 = np.cumsum(lengths2)
-        K = np.diff(np.cumsum(K, axis=0)[indices1-1, :], prepend=0, axis=0)
-        K = np.diff(np.cumsum(K, axis=1)[:, indices2-1], prepend=0, axis=1)
+        xp = utils.get_array_module(K)
+        indices1 = xp.cumsum(xp.array(lengths1))
+        indices2 = xp.cumsum(xp.array(lengths2))
+        K = xp.diff(xp.cumsum(K, axis=0)[indices1-1, :], prepend=0, axis=0)
+        K = xp.diff(xp.cumsum(K, axis=1)[:, indices2-1], prepend=0, axis=1)
         return K
 
     def _fake_K(self, method, X, X2=None):
         if X2 is None:
             X2 = X
-        xp = utils.get_array_module(X)
+        xp = utils.get_array_module(X[0])
         N1 = len(X)
         N2 = len(X2)
         lengths1 = np.array([len(item) for item in X])
@@ -47,8 +48,9 @@ class Summation(Kernel):
         result = xp.zeros((N1, N2))
         for slic1 in split1:
             for slic2 in split2:
-                K = self.kernel.K(np.concatenate(X[slic1]), np.concatenate(X2[slic2]))
-                result[slic1, slic2] = self.sum_by_length(K, lengths1[slic1], lengths2[slic2])
+                K = self.kernel.K(xp.concatenate(X[slic1]), xp.concatenate(X2[slic2]))
+                tmp = self.sum_by_length(K, lengths1[slic1], lengths2[slic2])
+                result[slic1, slic2] = tmp
         return result
 
     @Cache('g')

@@ -54,3 +54,18 @@ def split_by_onetime_number(X: np.ndarray, onetime_number: int):
     if current_index != N:
         result.append(slice(current_index, N))
     return result
+
+
+def apply_recursively(method, X):
+    if isinstance(X, list):
+        return [apply_recursively(method, item) for item in X]
+    elif isinstance(X, tuple):
+        return tuple([apply_recursively(method, item) for item in X])
+    elif isinstance(X, np.ndarray) and X.dtype == object:
+        return [apply_recursively(method, item) for item in X]
+    elif isinstance(X, np.ndarray):
+        return method(X)
+    elif gpu_available and isinstance(X, cp.ndarray):
+        return method(X)
+    else:
+        assert False
