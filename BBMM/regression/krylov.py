@@ -16,8 +16,10 @@ class Krylov(object):
         self.lanczos_n_iter = lanczos_n_iter
         if gpu_available:
             self.xp = cp.get_array_module(self.b)
+            self.GPU = isinstance(self.b, cp.ndarray)
         else:
             self.xp = np
+            self.GPU = False
         self.callback = callback
         self.debug = debug
         self.max_iter = max_iter
@@ -67,36 +69,22 @@ class Krylov(object):
 
     def step_bcg(self):
         # self.Ap: N*k
-        if gpu_available:
+        if self.GPU:
             cp.cuda.Stream.null.synchronize()
         t1 = time.time()
         self.denominator = self.xp.linalg.inv(self.p.T.dot(self.Ap))
-        #self.oldalpha = self.xp.linalg.inv(self.p.T.dot(self.Ap)).dot(self.r_k_norm)
         self.alpha = self.denominator.dot(-self.p.T.dot(self.r))
         self.alphas.append(self.alpha)
-        #assert self.xp.all(self.xp.isclose(self.alpha - self.oldalpha, 0, atol=1e-4))
-        # alpha: k*krylov.k
         self.x += self.p.dot(self.alpha)
         self.r += self.Ap.dot(self.alpha)
-        #assert(self.xp.all(self.xp.isclose(self.r.T.dot(self.p), 0, atol=1e-4)))
-        #self.r_kplus1_norm = self.r.T.dot(self.r)
-        #self.oldbeta = self.xp.linalg.inv(self.r_k_norm).dot(self.r_kplus1_norm)
         self.beta = self.denominator.dot(self.Ap.T.dot(self.r))
         self.betas.append(self.beta)
-        #assert self.xp.all(self.xp.isclose(self.beta - self.oldbeta, 0, atol=1e-4))
-        #self.r_k_norm = self.r_kplus1_norm
-        self.residual = cp.max(self.xp.linalg.norm(self.r, axis=0) / self.b_norm)
-        #self.residual = cp.asnumpy(self.r_kplus1_norm)[0, 0]
+        self.residual = self.xp.max(self.xp.linalg.norm(self.r, axis=0) / self.b_norm)
         self.p = self.p.dot(self.beta) - self.r
-        #if self.i % 200 == 0:
-        #    self.p = self.xp.random.random(self.p.shape)
-        #self.p /= self.xp.linalg.norm(self.p, axis=0)[None, :]
-        #self.p *= (self.xp.random.random(self.p.shape) * 1e-5 + 1)
-        #assert(self.xp.all(self.xp.isclose(self.p.T.dot(self.Ap), 0, atol=1e-4)))
         if self.debug:
             self.ps.append(self.p.copy())
             self.rs.append(self.r.copy())
-        if gpu_available:
+        if self.GPU:
             cp.cuda.Stream.null.synchronize()
         t2 = time.time()
         if self.callback is not None:
