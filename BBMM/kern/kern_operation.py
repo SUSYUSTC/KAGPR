@@ -111,3 +111,75 @@ class ProductKernel(Kernel):
         self.cache_state = state
         for k in self.kern_list:
             k.set_cache_state(state)
+
+
+class AdditionKernel(Kernel):
+    def __init__(self, kern_list: tp.List[Kernel]) -> None:
+        self.name = 'kern_operation.AdditionKernel'
+        self.nk = len(kern_list)
+        self.kern_list = kern_list
+        assert np.all(np.array([k.nout for k in kern_list]) == kern_list[0].nout)
+        self.nout = kern_list[0].nout
+        self.nps = [len(k.ps) for k in self.kern_list]
+        self.cumsum = np.concatenate([np.array([0]), np.cumsum(self.nps)])
+        self.ps = concatenate([k.ps for k in self.kern_list])
+        self.set_ps = concatenate([k.set_ps for k in self.kern_list])
+        self.dK_dps = []
+        self.transformations = concatenate([k.transformations for k in self.kern_list])
+        self.default_cache: tp.Dict[str, tp.Any] = {}
+        self.dK_dps = []
+        for i in range(len(self.ps)):
+            kern_index, pos_index = self.get_pos(i)
+
+            def func(X, X2=None, i=i, **kwargs):
+                return self.dK_dp(i, X, X2, **kwargs)
+            self.dK_dps.append(func)
+        super().__init__()
+        self.check()
+
+    def get_pos(self, i: int) -> tp.Tuple[int, int]:
+        kern_index = len(np.where(self.cumsum <= i)[0]) - 1
+        pos_index = i - self.cumsum[kern_index]
+        return (kern_index, pos_index)
+
+    @Cache('g')
+    def K(self, X, X2=None):
+        if X2 is None:
+            X2 = X
+        assert np.all(np.array([len(item) for item in X]) == self.nk)
+        result = sum(self.kern_list[i].K(self.get_subX(X, i), self.get_subX(X2, i)) for i in range(self.nk))
+        return result
+
+    def get_subX(self, X, kern_index):
+        return [x[kern_index] for x in X]
+
+    @Cache('g')
+    def dK_dp(self, i: int, X, X2=None):
+        if X2 is None:
+            X2 = X
+        assert np.all(np.array([len(item) for item in X]) == self.nk)
+        kern_index, pos_index = self.get_pos(i)
+        return self.kern_list[kern_index].dK_dps[pos_index](self.get_subX(X, kern_index), self.get_subX(X2, kern_index))
+
+    def clear_cache(self) -> None:
+        self.cache_data = {}
+        for i in range(self.nk):
+            self.kern_list[i].clear_cache()
+
+    def to_dict(self) -> tp.Dict[str, tp.Any]:
+        data = {
+            'name': self.name,
+            'kern_list': [k.to_dict() for k in self.kern_list],
+        }
+        return data
+
+    @classmethod
+    def from_dict(self, data: tp.Dict[str, tp.Any]) -> Kernel:
+        kern_list = [get_kern_obj(kerndata) for kerndata in data['kern_list']]
+        kernel = self(kern_list)
+        return kernel
+
+    def set_cache_state(self, state: bool) -> None:
+        self.cache_state = state
+        for k in self.kern_list:
+            k.set_cache_state(state)

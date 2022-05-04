@@ -19,7 +19,7 @@ from .derivative import Derivative
 from .derivative import FullDerivative
 from .difference import Difference
 from . import kern_operation
-from .kern_operation import ProductKernel
+from .kern_operation import ProductKernel, AdditionKernel
 from . import polynomial
 from .polynomial import Linear
 from .summation import Summation
