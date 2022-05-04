@@ -46,7 +46,7 @@ def split_by_onetime_number(X: np.ndarray, onetime_number: int):
     current_total = 0
     result = []
     for i in range(len(lengths)):
-        total += i
+        total += lengths[i]
         if total - current_total > onetime_number:
             result.append(slice(current_index, i + 1))
             current_index = i + 1
