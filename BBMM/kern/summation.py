@@ -58,28 +58,32 @@ class Summation(Kernel):
                 with xp.cuda.Device(i):
                     X_devices[i] = [xp.asarray(item) for item in X]
                     X2_devices[i] = [xp.asarray(item) for item in X2]
-        for slic1 in split1:
-            for slic2 in split2:
+        s1 = len(split1)
+        s2 = len(split2)
+        values = [[None for i in range(s2)] for i in range(s1)]
+        for i, slic1 in enumerate(split1):
+            for j, slic2 in enumerate(split2):
                 if nGPUs is not None:
                     with xp.cuda.Device(index):
                         subX = xp.concatenate(X_devices[index][slic1])
-                        subX2 = xp.concatenate(X2_devices[index][slic1])
+                        subX2 = xp.concatenate(X2_devices[index][slic2])
+                        print(subX.shape, subX2.shape, index)
                         K = method(subX, subX2)
-                        tmp = self.sum_by_length(K, lengths1[slic1], lengths2[slic2])
-                    if save_on_CPU:
-                        with xp.cuda.Device(index):
-                            tmp = xp.asnumpy(tmp)
-                    else:
-                        with xp.cuda.Device(0):
-                            tmp = xp.asarray(tmp)
+                        values[i][j] = self.sum_by_length(K, lengths1[slic1], lengths2[slic2])
                 else:
                     K = method(xp.concatenate(X[slic1]), xp.concatenate(X2[slic2]))
-                    tmp = self.sum_by_length(K, lengths1[slic1], lengths2[slic2])
-                    if save_on_CPU:
-                        tmp = xp.asnumpy(tmp)
-                result[slic1, slic2] = tmp
+                    values[i][j] = self.sum_by_length(K, lengths1[slic1], lengths2[slic2])
                 if nGPUs is not None:
                     index = (index + 1) % nGPUs
+        for i, slic1 in enumerate(split1):
+            for j, slic2 in enumerate(split2):
+                tmp = values[i][j]
+                if save_on_CPU:
+                    tmp = xp.asnumpy(tmp)
+                elif not isinstance(tmp, np.ndarray):
+                    with xp.cuda.Device(i):
+                        tmp = xp.asarray(tmp)
+                result[slic1, slic2] = tmp
         return result
 
     @Cache('g')
