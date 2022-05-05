@@ -17,6 +17,8 @@ class GP(object):
         assert len(Y) == self.Nout
         self.noise = Noise(noise, self.kernel.n_likelihood_splits)
         self.likelihood_splits = self.kernel.split_likelihood(self.Nin)
+        self.diag_reg = self.noise.get_diag_reg(self.likelihood_splits)
+        self.diag_reg_gradient = self.noise.get_diag_reg_gradient(self.likelihood_splits)
         self.nks = len(self.kernel.ps)
         self.nns = len(self.noise.values)
         self.transformations_group = param_transformation.Group(kernel.transformations + [param_transformation.log] * self.nns)
@@ -41,22 +43,21 @@ class GP(object):
         else:
             self.file = file
 
-    def fit_PCG(self, Nk, thres=1e-6) -> None:
+    def input_w(self, w) -> None:
+        self.w = w
         self.grad = False
-        K = self.kernel.K(self.X, cache=self.kernel.default_cache)
-        diag_reg = self.noise.get_diag_reg(self.likelihood_splits)
-        self.w = PCG(K, diag_reg, self.Y, Nk, thres=thres, file=self.file, verbose=True)
 
     def fit(self, grad: bool = False) -> None:
         self.grad = grad
+        self.diag_reg = self.noise.get_diag_reg(self.likelihood_splits)
         K_noise = self.kernel.K(self.X, cache=self.kernel.default_cache)
-        diag_reg = self.noise.get_diag_reg(self.likelihood_splits)
-        K_noise[self.xp.arange(self.Nout), self.xp.arange(self.Nout)] += self.xp.array(diag_reg)
+        K_noise[self.xp.arange(self.Nout), self.xp.arange(self.Nout)] += self.xp.array(self.diag_reg)
         L = self.xp.linalg.cholesky(K_noise)
         del K_noise
         w_int = self.xp_solve_triangular(L, self.Y, lower=True, trans=0)
         self.w = self.xp_solve_triangular(L, w_int, lower=True, trans=1)
         if grad:
+            self.diag_reg_gradient = self.noise.get_diag_reg_gradient(self.likelihood_splits)
             logdet = self.xp.sum(self.xp.log(self.xp.diag(L))) * 2
             Linv = self.xp_solve_triangular(L, self.xp.eye(self.Nout), lower=True, trans=0)
             del L
@@ -66,7 +67,7 @@ class GP(object):
             dL_dK = (self.w.dot(self.w.T) - K_noise_inv) / 2
             del K_noise_inv
             dL_dps = [self.xp.sum(dL_dK * dK_dp(self.X, cache=self.kernel.default_cache)) for dK_dp in self.kernel.dK_dps]
-            dL_dns = [self.xp.trace(dL_dK * self.xp.diag(dK_dn_diag)) for dK_dn_diag in self.noise.get_diag_reg_gradient(self.likelihood_splits)]
+            dL_dns = [self.xp.trace(dL_dK * self.xp.diag(dK_dn_diag)) for dK_dn_diag in self.diag_reg_gradient]
             self.gradient = self.xp.array(dL_dps + dL_dns)
             if self.GPU:
                 self.ll = self.ll.get()

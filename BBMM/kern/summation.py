@@ -7,11 +7,11 @@ from .. import utils
 
 
 class Summation(Kernel):
-    def __init__(self, kernel: Kernel, save_on_CPU: bool = False):
+    def __init__(self, kernel: Kernel):
         self.name = 'summation.Summation'
         self.default_cache = {}
         self.kernel = kernel
-        self.save_on_CPU = save_on_CPU
+        self.save_on_CPU = False
         self.ps = self.kernel.ps
         self.set_ps = self.kernel.set_ps
         self.transformations = self.kernel.transformations
@@ -24,6 +24,9 @@ class Summation(Kernel):
         self.set_onetime_number()
         super().__init__()
         self.check()
+
+    def set_save_on_CPU(self, save_on_CPU: bool):
+        self.save_on_CPU = save_on_CPU
 
     def set_onetime_number(self, n=5000):
         self.onetime_number = n

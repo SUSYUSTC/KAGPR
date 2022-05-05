@@ -3,10 +3,10 @@ import numpy.linalg as LA
 import scipy.linalg as SLA
 import time
 from .preconditioner import Preconditioner_Nystroem
-from .kryloc import Krylov
+from .krylov import Krylov
 
 
-def PCG(K, diag_reg, y, Nk, thres=1e-6, verbose=True, file=None):
+def PCG(K: np.ndarray, diag_reg, y: np.ndarray, Nk: int, thres: float=1e-6, verbose=True, file=None):
     if verbose:
         print('Start PCG calculation', file=file)
     N = len(y)
@@ -47,7 +47,8 @@ def PCG(K, diag_reg, y, Nk, thres=1e-6, verbose=True, file=None):
         return result
 
     def callback(i, residual, t_cg):
-        print(i, residual, file=file)
+        if verbose:
+            print(i, residual, file=file)
 
     y_transform = pred_nystroem.mv_invhalf(y)
     if verbose:
