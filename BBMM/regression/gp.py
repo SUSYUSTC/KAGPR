@@ -6,6 +6,7 @@ import time
 import sys
 from .noise import Noise
 from .. import utils
+from .pcg import PCG
 
 
 class GP(object):
@@ -27,17 +28,24 @@ class GP(object):
             import cupyx.scipy.linalg
             cupyx.seterr(linalg='raise')
             self.xp_solve_triangular = cupyx.scipy.linalg.solve_triangular
+            self.X = utils.apply_recursively(cp.asarray, X)
+            self.Y = cp.asarray(Y).copy()
         else:
             import scipy
             self.xp = np
             self.xp_solve_triangular = scipy.linalg.solve_triangular
-        self.X = utils.apply_recursively(self.xp.array, X)
-        #self.X = self.xp.array(X).copy()
-        self.Y = self.xp.array(Y).copy()
+            self.X = X
+            self.Y = Y
         if file is None:
             self.file = sys.__stdout__
         else:
             self.file = file
+
+    def fit_PCG(self, Nk, thres=1e-6) -> None:
+        self.grad = False
+        K = self.kernel.K(self.X, cache=self.kernel.default_cache)
+        diag_reg = self.noise.get_diag_reg(self.likelihood_splits)
+        self.w = PCG(K, diag_reg, self.Y, Nk, thres=thres, file=self.file, verbose=True)
 
     def fit(self, grad: bool = False) -> None:
         self.grad = grad
@@ -144,7 +152,7 @@ class GP(object):
             transform_ps_noise_n = transform_ps_noise.copy()
             transform_ps_noise_n[i] -= delta
             obj_n, _ = self.objective(transform_ps_noise_n)
-            n_grad.append((obj_p-obj_n)/(delta*2))
+            n_grad.append((obj_p - obj_n) / (delta * 2))
         return np.array(n_grad)
 
     def opt_callback(self, x):

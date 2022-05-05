@@ -7,10 +7,11 @@ from .. import utils
 
 
 class Summation(Kernel):
-    def __init__(self, kernel: Kernel):
+    def __init__(self, kernel: Kernel, save_on_CPU: bool = False):
         self.name = 'summation.Summation'
         self.default_cache = {}
         self.kernel = kernel
+        self.save_on_CPU = save_on_CPU
         self.ps = self.kernel.ps
         self.set_ps = self.kernel.set_ps
         self.transformations = self.kernel.transformations
@@ -22,6 +23,7 @@ class Summation(Kernel):
             self.dK_dps.append(func)
         self.set_onetime_number()
         super().__init__()
+        self.check()
 
     def set_onetime_number(self, n=5000):
         self.onetime_number = n
@@ -31,8 +33,8 @@ class Summation(Kernel):
         xp = utils.get_array_module(K)
         indices1 = xp.cumsum(xp.array(lengths1))
         indices2 = xp.cumsum(xp.array(lengths2))
-        K = xp.diff(xp.cumsum(K, axis=0)[indices1-1, :], prepend=0, axis=0)
-        K = xp.diff(xp.cumsum(K, axis=1)[:, indices2-1], prepend=0, axis=1)
+        K = xp.diff(xp.cumsum(K, axis=0)[indices1 - 1, :], prepend=0, axis=0)
+        K = xp.diff(xp.cumsum(K, axis=1)[:, indices2 - 1], prepend=0, axis=1)
         return K
 
     def _fake_K(self, method, X, X2=None):
@@ -45,11 +47,16 @@ class Summation(Kernel):
         lengths2 = np.array([len(item) for item in X2])
         split1 = utils.split_by_onetime_number(X, self.onetime_number)
         split2 = utils.split_by_onetime_number(X2, self.onetime_number)
-        result = xp.zeros((N1, N2))
+        if self.save_on_CPU:
+            result = np.zeros((N1, N2))
+        else:
+            result = xp.zeros((N1, N2))
         for slic1 in split1:
             for slic2 in split2:
                 K = method(xp.concatenate(X[slic1]), xp.concatenate(X2[slic2]))
                 tmp = self.sum_by_length(K, lengths1[slic1], lengths2[slic2])
+                if self.save_on_CPU:
+                    tmp = xp.asnumpy(tmp)
                 result[slic1, slic2] = tmp
         return result
 
