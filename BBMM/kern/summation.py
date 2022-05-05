@@ -11,7 +11,6 @@ class Summation(Kernel):
         self.name = 'summation.Summation'
         self.default_cache = {}
         self.kernel = kernel
-        self.save_on_CPU = False
         self.ps = self.kernel.ps
         self.set_ps = self.kernel.set_ps
         self.transformations = self.kernel.transformations
@@ -25,9 +24,6 @@ class Summation(Kernel):
         super().__init__()
         self.check()
 
-    def set_save_on_CPU(self, save_on_CPU: bool):
-        self.save_on_CPU = save_on_CPU
-
     def set_onetime_number(self, n=5000):
         self.onetime_number = n
 
@@ -40,7 +36,7 @@ class Summation(Kernel):
         K = xp.diff(xp.cumsum(K, axis=1)[:, indices2 - 1], prepend=0, axis=1)
         return K
 
-    def _fake_K(self, method, X, X2=None):
+    def _fake_K(self, method, X, X2=None, save_on_CPU=False, nGPUs=None):
         if X2 is None:
             X2 = X
         xp = utils.get_array_module(X[0])
@@ -50,26 +46,49 @@ class Summation(Kernel):
         lengths2 = np.array([len(item) for item in X2])
         split1 = utils.split_by_onetime_number(X, self.onetime_number)
         split2 = utils.split_by_onetime_number(X2, self.onetime_number)
-        if self.save_on_CPU:
+        if save_on_CPU:
             result = np.zeros((N1, N2))
         else:
             result = xp.zeros((N1, N2))
+        index = 0
+        if nGPUs is not None:
+            X_devices = [None for i in range(nGPUs)]
+            X2_devices = [None for i in range(nGPUs)]
+            for i in range(nGPUs):
+                with xp.cuda.Device(i):
+                    X_devices[i] = [xp.asarray(item) for item in X]
+                    X2_devices[i] = [xp.asarray(item) for item in X2]
         for slic1 in split1:
             for slic2 in split2:
-                K = method(xp.concatenate(X[slic1]), xp.concatenate(X2[slic2]))
-                tmp = self.sum_by_length(K, lengths1[slic1], lengths2[slic2])
-                if self.save_on_CPU:
-                    tmp = xp.asnumpy(tmp)
+                if nGPUs is not None:
+                    with xp.cuda.Device(index):
+                        subX = xp.concatenate(X_devices[index][slic1])
+                        subX2 = xp.concatenate(X2_devices[index][slic1])
+                        K = method(subX, subX2)
+                        tmp = self.sum_by_length(K, lengths1[slic1], lengths2[slic2])
+                    if save_on_CPU:
+                        with xp.cuda.Device(index):
+                            tmp = xp.asnumpy(tmp)
+                    else:
+                        with xp.cuda.Device(0):
+                            tmp = xp.asarray(tmp)
+                else:
+                    K = method(xp.concatenate(X[slic1]), xp.concatenate(X2[slic2]))
+                    tmp = self.sum_by_length(K, lengths1[slic1], lengths2[slic2])
+                    if save_on_CPU:
+                        tmp = xp.asnumpy(tmp)
                 result[slic1, slic2] = tmp
+                if nGPUs is not None:
+                    index = (index + 1) % nGPUs
         return result
 
     @Cache('g')
-    def K(self, X, X2=None):
-        return self._fake_K(self.kernel.K, X, X2)
+    def K(self, X, X2=None, save_on_CPU=False, nGPUs=None):
+        return self._fake_K(self.kernel.K, X, X2, save_on_CPU=save_on_CPU, nGPUs=nGPUs)
 
     @Cache('g')
-    def dK_dp(self, i, X, X2=None):
-        return self._fake_K(self.kernel.dK_dps[i], X, X2)
+    def dK_dp(self, i, X, X2=None, save_on_CPU=False, nGPUs=None):
+        return self._fake_K(self.kernel.dK_dps[i], X, X2, save_on_CPU=save_on_CPU, nGPUs=nGPUs)
 
     def clear_cache(self) -> None:
         self.cache_data = {}
