@@ -81,7 +81,7 @@ class Summation(Kernel):
                 if save_on_CPU:
                     tmp = xp.asnumpy(tmp)
                 elif not isinstance(tmp, np.ndarray):
-                    with xp.cuda.Device(i):
+                    with xp.cuda.Device(0):
                         tmp = xp.asarray(tmp)
                 result[slic1, slic2] = tmp
         return result
