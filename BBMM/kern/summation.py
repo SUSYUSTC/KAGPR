@@ -40,6 +40,8 @@ class Summation(Kernel):
         if X2 is None:
             X2 = X
         xp = utils.get_array_module(X[0])
+        if nGPUs is not None:
+            assert xp is not np
         N1 = len(X)
         N2 = len(X2)
         lengths1 = np.array([len(item) for item in X])
@@ -67,7 +69,6 @@ class Summation(Kernel):
                     with xp.cuda.Device(index):
                         subX = xp.concatenate(X_devices[index][slic1])
                         subX2 = xp.concatenate(X2_devices[index][slic2])
-                        print(subX.shape, subX2.shape, index)
                         K = method(subX, subX2)
                         values[i][j] = self.sum_by_length(K, lengths1[slic1], lengths2[slic2])
                 else:

@@ -12,7 +12,7 @@ params_ref = np.array([3.47555621e-01, 9.76080792e-01, 1.00000550e-04])
 
 
 class Test(unittest.TestCase):
-    def run(self, GPU):
+    def _run(self, GPU):
         np.random.seed(0)
         sizes = np.arange(1, 11) * 10
         N = len(sizes)
@@ -40,7 +40,11 @@ class Test(unittest.TestCase):
                     self.assertTrue(err < 1e-10)
 
         gp = BBMM.GP(X_train, Y_train, kernel_summation, 1e-4, GPU=GPU)
-        gp.optimize(messages=False)
+        if GPU:
+            nGPUs = 1
+        else:
+            nGPUs = None
+        gp.optimize(messages=False, nGPUs=nGPUs)
         self.assertTrue(np.max(np.abs(gp.params / params_ref - 1)) < 1e-4)
         pred_train = gp.predict(X_train)
         err = np.max(np.abs(pred_train - Y_train))
@@ -55,10 +59,10 @@ class Test(unittest.TestCase):
         os.remove("model.npz")
 
     def test_CPU(self):
-        self.run(False)
+        self._run(False)
 
     def test_GPU(self):
-        self.run(True)
+        self._run(True)
 
 
 if __name__ == '__main__':

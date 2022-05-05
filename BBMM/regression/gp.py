@@ -47,10 +47,10 @@ class GP(object):
         self.w = w
         self.grad = False
 
-    def fit(self, grad: bool = False) -> None:
+    def fit(self, grad: bool = False, **kernel_options) -> None:
         self.grad = grad
         self.diag_reg = self.noise.get_diag_reg(self.likelihood_splits)
-        K_noise = self.kernel.K(self.X, cache=self.kernel.default_cache)
+        K_noise = self.kernel.K(self.X, cache=self.kernel.default_cache, **kernel_options)
         K_noise[self.xp.arange(self.Nout), self.xp.arange(self.Nout)] += self.xp.array(self.diag_reg)
         L = self.xp.linalg.cholesky(K_noise)
         del K_noise
@@ -66,7 +66,7 @@ class GP(object):
             self.ll = - (self.Y.T.dot(self.w)[0, 0] + logdet) / 2 - self.xp.log(self.xp.pi * 2) * self.Nout / 2
             dL_dK = (self.w.dot(self.w.T) - K_noise_inv) / 2
             del K_noise_inv
-            dL_dps = [self.xp.sum(dL_dK * dK_dp(self.X, cache=self.kernel.default_cache)) for dK_dp in self.kernel.dK_dps]
+            dL_dps = [self.xp.sum(dL_dK * dK_dp(self.X, cache=self.kernel.default_cache, **kernel_options)) for dK_dp in self.kernel.dK_dps]
             dL_dns = [self.xp.trace(dL_dK * self.xp.diag(dK_dn_diag)) for dK_dn_diag in self.diag_reg_gradient]
             self.gradient = self.xp.array(dL_dps + dL_dns)
             if self.GPU:
@@ -133,13 +133,13 @@ class GP(object):
         self.kernel.clear_cache()
         self.params = np.array(ps + noises)
 
-    def objective(self, transform_ps_noise: np.ndarray) -> tp.Tuple[float, np.ndarray]:
+    def objective(self, transform_ps_noise: np.ndarray, **kernel_options) -> tp.Tuple[float, np.ndarray]:
         ps_noise = self.transformations_group.inv(transform_ps_noise.tolist())
         if self.messages:
             print('x:' + ' %e' * len(ps_noise) % tuple(ps_noise), file=self.file, flush=True)
         d_transform_ps_noise = self.transformations_group.d(ps_noise)
         self.update(ps_noise[:self.nks], ps_noise[-self.nns:])
-        self.fit(grad=True)
+        self.fit(grad=True, **kernel_options)
         self.transform_gradient = self.gradient / np.array(d_transform_ps_noise)
         result = (-self.ll, -self.transform_gradient)
         return result
@@ -174,7 +174,7 @@ class GP(object):
             self.current_best_ps = self.saved_ps
             self.current_best_noises = self.saved_noises
 
-    def optimize(self, messages=False, tol=1e-6, noise_bound: tp.Union[utils.general_float, tp.List[utils.general_float]] = 1e-10) -> None:
+    def optimize(self, messages=False, tol=1e-6, noise_bound: tp.Union[utils.general_float, tp.List[utils.general_float]] = 1e-10, **kernel_options) -> None:
         import scipy
         import scipy.optimize
         self.messages = messages
@@ -183,6 +183,10 @@ class GP(object):
         noise_bound_list = utils.make_desired_size(noise_bound, self.kernel.n_likelihood_splits)
         import warnings
         n_try = 1
+
+        def objective(transform_ps_noise: np.ndarray):
+            return self.objective(transform_ps_noise, **kernel_options)
+
         while True:
             try:
                 ps_noise = list(map(lambda p: p.value, self.kernel.ps)) + self.noise.values
@@ -192,7 +196,7 @@ class GP(object):
                     warnings.simplefilter("ignore")
                     for b in noise_bound_list:
                         bounds.append((float(np.log(b)), np.inf))
-                self.result = scipy.optimize.minimize(self.objective, transform_ps_noise, jac=True, method='L-BFGS-B', callback=callback, tol=tol, bounds=bounds, options={'maxls': 100})
+                self.result = scipy.optimize.minimize(objective, transform_ps_noise, jac=True, method='L-BFGS-B', callback=callback, tol=tol, bounds=bounds, options={'maxls': 100})
                 if self.result.success or (n_try >= 12):
                     break
                 print("Optimization not successful, restarting", file=self.file, flush=True)
@@ -208,7 +212,7 @@ class GP(object):
         self.success = self.result.success
         if self.ll < self.current_best_ll:
             self.update(self.current_best_ps, self.current_best_noises)
-            self.fit(grad=True)
+            self.fit(grad=True, **kernel_options)
             print('Optimization failed, taking the best history value, -ll =', -self.ll, file=self.file, flush=True)
         end = time.time()
         print('time', end - begin, file=self.file, flush=True)

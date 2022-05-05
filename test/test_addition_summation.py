@@ -16,7 +16,7 @@ params_ref = np.array([1.39523070e-04, 6.40017590e+04, 1.11795984e+00, 2.2504262
 
 
 class Test(unittest.TestCase):
-    def run(self, GPU):
+    def _run(self, GPU):
         np.random.seed(0)
         N_mol = 10
         s1 = 3
@@ -54,10 +54,10 @@ class Test(unittest.TestCase):
         os.remove("model.npz")
 
     def test_CPU(self):
-        self.run(False)
+        self._run(False)
 
     def test_GPU(self):
-        self.run(True)
+        self._run(True)
 
 
 if __name__ == '__main__':
