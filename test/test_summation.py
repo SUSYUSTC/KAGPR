@@ -23,7 +23,6 @@ class Test(unittest.TestCase):
         Y_test = np.array([func(x) for x in X_test])[:, None]
         kernel = BBMM.kern.RBF()
         kernel_summation = BBMM.kern.Summation(kernel)
-        kernel_summation.set_onetime_number(70)
         K_full = kernel.K(np.concatenate(X_train), np.concatenate(X_test))
         K = kernel_summation.K(X_train, X_test)
         self.assertTrue(K.shape == (len(sizes), len(sizes)))
@@ -40,11 +39,7 @@ class Test(unittest.TestCase):
                     self.assertTrue(err < 1e-10)
 
         gp = BBMM.GP(X_train, Y_train, kernel_summation, 1e-4, GPU=GPU)
-        if GPU:
-            nGPUs = 1
-        else:
-            nGPUs = None
-        gp.optimize(messages=False, nGPUs=nGPUs)
+        gp.optimize(messages=False)
         self.assertTrue(np.max(np.abs(gp.params / params_ref - 1)) < 1e-4)
         pred_train = gp.predict(X_train)
         err = np.max(np.abs(pred_train - Y_train))

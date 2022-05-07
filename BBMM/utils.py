@@ -24,6 +24,8 @@ except BaseException:
 
 
 def get_array_module(x):
+    if isinstance(x, list) or isinstance(x, tuple):
+        return get_array_module(x[0])
     if gpu_available:
         return cp.get_array_module(x)
     else:
@@ -69,3 +71,10 @@ def apply_recursively(method, X):
         return method(X)
     else:
         assert False
+
+
+def make_slices(N, max_len):
+    n = (N - 1) // max_len + 1
+    lst = [slice(i * max_len, (i + 1) * max_len, None) for i in range(n-1)]
+    lst.append(slice((n-1) * max_len, N))
+    return lst
