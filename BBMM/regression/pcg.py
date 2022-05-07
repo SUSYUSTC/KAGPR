@@ -62,6 +62,7 @@ def PCG(K, diag_reg, y, Nk, nGPUs=0, thres=1e-6, verbose=True, file=None):
         for i, d in enumerate(device_split):
             with cp.cuda.Device(i):
                 result[i] = Ks_GPU[i].dot(cp.asarray(w))
+        for i, d in enumerate(device_split):
             with cp.cuda.Device(0):
                 result[i] = cp.asarray(result[i])
         with cp.cuda.Device(0):
