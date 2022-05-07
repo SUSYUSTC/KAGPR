@@ -54,7 +54,8 @@ def PCG(K, diag_reg, y, Nk, nGPUs=0, thres=1e-6, verbose=True, file=None):
         device_split = np.array_split(np.arange(N), nGPUs)
         Ks_GPU = [None for d in device_split]
         for i, d in enumerate(device_split):
-            Ks_GPU[i] = cp.asarray(K[d])
+            with cp.cuda.Device(i):
+                Ks_GPU[i] = cp.asarray(K[d])
 
     def mv_K_GPU(w):
         result = [None for d in device_split]
