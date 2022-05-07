@@ -28,3 +28,9 @@ class splited_array:
 
     def __len__(self):
         return self.length
+
+
+def clear_cache(nGPUs):
+    for i in range(nGPUs):
+        with cp.cuda.Device(i):
+            cp._default_memory_pool.free_all_blocks()

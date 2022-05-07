@@ -94,7 +94,6 @@ class Kernel(object):
         index = 0
         result = [[None for i in range(s2)] for i in range(s1)]
         for i, slic1 in enumerate(split1):
-            print(i)
             for j, slic2 in enumerate(split2):
                 if multiGPU:
                     with cp.cuda.Device(index):
