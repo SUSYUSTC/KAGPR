@@ -48,11 +48,10 @@ class Preconditioner_Nystroem(object):
                 self.device_division = np.split(np.arange(self.N), [1] + [self.N * i // (self.nGPU - 1) for i in range(1, self.nGPU - 1)])
             self.Lambda = cp.asarray(Lambda)
             self.diag_reg = cp.asarray(diag_reg)
-            self.U = []
+            self.U = [U[d] for d in self.device_division]
             for i, d in enumerate(self.device_division):
                 with cp.cuda.Device(i):
-                    eigvec_on_device = cp.asarray(U[d])
-                self.U.append(eigvec_on_device)
+                    self.U[i] = cp.asarray(self.U[i])
             cp.cuda.Stream.null.synchronize()
         else:
             self.Lambda = Lambda.copy()
