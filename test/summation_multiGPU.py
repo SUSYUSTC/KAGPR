@@ -4,7 +4,7 @@ import unittest
 import BBMM
 import os
 
-nGPUs = 2
+nGPUs = 1
 
 
 def func(x):
@@ -24,10 +24,10 @@ class Test(unittest.TestCase):
         Y_test = np.array([func(x) for x in X_test])[:, None]
         kernel = BBMM.kern.RBF()
         kernel_summation = BBMM.kern.Summation(kernel)
-        gp_single = BBMM.GP(X_train, Y_train, kernel_summation, 1e-4, GPU=1)
+        gp_single = BBMM.GP(X_train, Y_train, kernel_summation, 1e-4, GPU=False)
         gp = BBMM.GP(X_train, Y_train, kernel_summation, 1e-4, GPU=nGPUs, split=True)
-        err = cp.max(np.abs(gp.kernel_K(gp.X) - gp_single.kernel_K(gp_single.X))).get()
-        print(err)
+        err = np.max(np.abs(cp.asnumpy(gp.kernel_K(gp.X)) - gp_single.kernel_K(gp_single.X)))
+        self.assertTrue(err < 1e-10)
         gp.optimize(messages=False)
         self.assertTrue(np.max(np.abs(gp.params / params_ref - 1)) < 1e-4)
         pred_train = gp.predict(X_train)

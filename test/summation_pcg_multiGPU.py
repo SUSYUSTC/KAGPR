@@ -4,7 +4,7 @@ import BBMM
 import cupy as cp
 import os
 
-nGPUs = 2
+nGPUs = 1
 
 
 def func(x):
@@ -26,7 +26,7 @@ class Test(unittest.TestCase):
         kernel = BBMM.kern.RBF()
         kernel_summation = BBMM.kern.Summation(kernel)
         kernel_summation.set_all_ps(params_ref[0:-1])
-        gp = BBMM.GP(X_train, Y_train, kernel_summation, params_ref[-1], GPU=True, split=True)
+        gp = BBMM.GP(X_train, Y_train, kernel_summation, params_ref[-1], GPU=nGPUs, split=True)
         gp.set_kernel_options(onetime_number=2)
         K = kernel_summation.K_split(gp.X, save_on_CPU=True, onetime_number=3)
         assert isinstance(K, np.ndarray)

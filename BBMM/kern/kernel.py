@@ -3,6 +3,7 @@ from . import param_transformation
 import typing as tp
 import numpy as np
 from .. import utils
+from .cache import Cache
 
 
 class Kernel(object):
@@ -115,8 +116,10 @@ class Kernel(object):
         result = xp.concatenate(result)
         return result
 
+    @Cache('no')
     def K_split(self, X, X2=None, onetime_number=5000, save_on_CPU=False):
         return self._fake_K_split(self.K, X, X2, onetime_number=onetime_number, save_on_CPU=save_on_CPU)
 
+    @Cache('no')
     def dK_dp_split(self, i, X, X2=None, onetime_number=5000, save_on_CPU=False):
-        return self.dK_dps[i](self.K, X, X2, onetime_number=onetime_number, save_on_CPU=save_on_CPU)
+        return self._fake_K_split(self.dK_dps[i], X, X2, onetime_number=onetime_number, save_on_CPU=save_on_CPU)
