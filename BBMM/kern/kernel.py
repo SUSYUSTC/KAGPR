@@ -111,7 +111,7 @@ class Kernel(object):
                         else:
                             result[i][j] = cp.asarray(result[i][j])
         for i in range(s1):
-            result[i] = xp.concatenate(result[i])
+            result[i] = xp.concatenate(result[i], axis=1)
         result = xp.concatenate(result)
         return result
 
