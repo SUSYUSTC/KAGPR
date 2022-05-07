@@ -4,7 +4,7 @@ import unittest
 import BBMM
 import os
 
-nGPUs = 1
+nGPUs = 2
 
 
 def func(x):
@@ -26,6 +26,7 @@ class Test(unittest.TestCase):
         kernel_summation = BBMM.kern.Summation(kernel)
         gp_single = BBMM.GP(X_train, Y_train, kernel_summation, 1e-4, GPU=False)
         gp = BBMM.GP(X_train, Y_train, kernel_summation, 1e-4, GPU=nGPUs, split=True)
+        gp.set_kernel_options(onetime_number=2)
         err = np.max(np.abs(cp.asnumpy(gp.kernel_K(gp.X)) - gp_single.kernel_K(gp_single.X)))
         self.assertTrue(err < 1e-10)
         gp.optimize(messages=False)

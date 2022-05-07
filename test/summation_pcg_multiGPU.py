@@ -4,7 +4,7 @@ import BBMM
 import cupy as cp
 import os
 
-nGPUs = 1
+nGPUs = 2
 
 
 def func(x):

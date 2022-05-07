@@ -81,6 +81,10 @@ class Kernel(object):
         else:
             assert utils.get_array_module(X) is np
             assert utils.get_array_module(X2) is np
+        if save_on_CPU or (not multiGPU):
+            xp = np
+        else:
+            xp = cp
         N1 = len(X)
         N2 = len(X2)
         split1 = utils.make_slices(N1, onetime_number)
@@ -90,6 +94,7 @@ class Kernel(object):
         index = 0
         result = [[None for i in range(s2)] for i in range(s1)]
         for i, slic1 in enumerate(split1):
+            print(i)
             for j, slic2 in enumerate(split2):
                 if multiGPU:
                     with cp.cuda.Device(index):
@@ -99,19 +104,13 @@ class Kernel(object):
                 else:
                     values = method(X[slic1], X2[slic2])
                 result[i][j] = values
-        if save_on_CPU or (not multiGPU):
-            xp = np
-        else:
-            xp = cp
-        if multiGPU:
-            for i in range(s1):
+            if multiGPU:
                 for j in range(s2):
-                    with cp.cuda.Device(0):
-                        if save_on_CPU:
-                            result[i][j] = cp.asnumpy(result[i][j])
-                        else:
+                    if save_on_CPU:
+                        result[i][j] = cp.asnumpy(result[i][j])
+                    else:
+                        with cp.cuda.Device(0):
                             result[i][j] = cp.asarray(result[i][j])
-        for i in range(s1):
             result[i] = xp.concatenate(result[i], axis=1)
         result = xp.concatenate(result)
         return result

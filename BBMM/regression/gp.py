@@ -167,7 +167,7 @@ class GP(object):
             print('x:' + ' %e' * len(ps_noise) % tuple(ps_noise), file=self.file, flush=True)
         d_transform_ps_noise = self.transformations_group.d(ps_noise)
         self.update(ps_noise[:self.nks], ps_noise[-self.nns:])
-        self.fit(grad=True, **self.kernel_options)
+        self.fit(grad=True)
         self.transform_gradient = self.gradient / np.array(d_transform_ps_noise)
         result = (-self.ll, -self.transform_gradient)
         return result
@@ -236,7 +236,7 @@ class GP(object):
         self.success = self.result.success
         if self.ll < self.current_best_ll:
             self.update(self.current_best_ps, self.current_best_noises)
-            self.fit(grad=True, **kernel_options)
+            self.fit(grad=True)
             print('Optimization failed, taking the best history value, -ll =', -self.ll, file=self.file, flush=True)
         end = time.time()
         print('time', end - begin, file=self.file, flush=True)

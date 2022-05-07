@@ -1,8 +1,12 @@
+from functools import wraps
+
+
 class Cache(object):
     def __init__(self, group='default'):
         self.group = group
 
     def __call__(self, f):
+        @wraps(f)
         def g(*args, **kwargs):
             self_f = args[0]
             name = f.__name__
