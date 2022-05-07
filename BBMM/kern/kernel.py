@@ -65,7 +65,7 @@ class Kernel(object):
     def copy(self) -> 'Kernel':
         return self.from_dict(self.to_dict())
 
-    def _fake_K_split(self, method, X, X2=None, onetime_number=5000, save_on_CPU=False):
+    def _fake_K_split(self, method, X, X2=None, onetime_number=5000, save_on_CPU=False, progress=False, file=None):
         # Assume X and X2 is always divided for multiGPU case
         multiGPU = False
         try:
@@ -94,6 +94,8 @@ class Kernel(object):
         index = 0
         result = [[None for i in range(s2)] for i in range(s1)]
         for i, slic1 in enumerate(split1):
+            if progress:
+                print('progress:', i, 'in', s1, file=file, flush=True)
             for j, slic2 in enumerate(split2):
                 if multiGPU:
                     with cp.cuda.Device(index):
@@ -115,9 +117,9 @@ class Kernel(object):
         return result
 
     @Cache('no')
-    def K_split(self, X, X2=None, onetime_number=5000, save_on_CPU=False):
-        return self._fake_K_split(self.K, X, X2, onetime_number=onetime_number, save_on_CPU=save_on_CPU)
+    def K_split(self, X, X2=None, onetime_number=5000, save_on_CPU=False, progress=False, file=None):
+        return self._fake_K_split(self.K, X, X2, onetime_number=onetime_number, save_on_CPU=save_on_CPU, progress=progress, file=file)
 
     @Cache('no')
-    def dK_dp_split(self, i, X, X2=None, onetime_number=5000, save_on_CPU=False):
-        return self._fake_K_split(self.dK_dps[i], X, X2, onetime_number=onetime_number, save_on_CPU=save_on_CPU)
+    def dK_dp_split(self, i, X, X2=None, onetime_number=5000, save_on_CPU=False, progress=False, file=None):
+        return self._fake_K_split(self.dK_dps[i], X, X2, onetime_number=onetime_number, save_on_CPU=save_on_CPU, progress=progress, file=file)
