@@ -122,7 +122,7 @@ class GP(object):
         np.savez(path, **data)
 
     @classmethod
-    def from_dict(self, data: tp.Dict[str, tp.Any], GPU: tp.Union[bool, int]=False, split: bool=False) -> 'GP':
+    def from_dict(self, data: tp.Dict[str, tp.Any], GPU: tp.Union[bool, int] = False, split: bool = False) -> 'GP':
         kernel_dict = data['kernel'][()]
         kernel = get_kern_obj(kernel_dict)
         result = self(data['X'], data['Y'], kernel, noise=data['noise'][()], GPU=GPU, split=split)
@@ -133,9 +133,9 @@ class GP(object):
         return result
 
     @classmethod
-    def load(self, path: str, GPU: bool) -> 'GP':
+    def load(self, path: str, GPU: tp.Union[bool, int] = False, split: bool = False) -> 'GP':
         data = dict(np.load(path, allow_pickle=True))
-        return self.from_dict(data, GPU)
+        return self.from_dict(data, GPU=GPU, split=split)
 
     def predict(self, X: np.ndarray, training: bool = False) -> np.ndarray:
         self.kernel.clear_cache()
