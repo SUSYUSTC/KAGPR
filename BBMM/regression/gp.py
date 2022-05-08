@@ -122,10 +122,10 @@ class GP(object):
         np.savez(path, **data)
 
     @classmethod
-    def from_dict(self, data: tp.Dict[str, tp.Any], GPU: bool) -> 'GP':
+    def from_dict(self, data: tp.Dict[str, tp.Any], GPU: tp.Union[bool, int]=False, split: bool=False) -> 'GP':
         kernel_dict = data['kernel'][()]
         kernel = get_kern_obj(kernel_dict)
-        result = self(data['X'], data['Y'], kernel, noise=data['noise'][()], GPU=GPU)
+        result = self(data['X'], data['Y'], kernel, noise=data['noise'][()], GPU=GPU, split=split)
         if GPU:
             result.w = result.xp.asarray(data['w'])
         else:
