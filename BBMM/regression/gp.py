@@ -172,6 +172,12 @@ class GP(object):
         result = (-self.ll, -self.transform_gradient)
         return result
 
+    def active_objective(self, params: np.ndarray) -> tp.Tuple[float, np.ndarray]:
+        full_params = self.init_params.copy()
+        full_params[self.active_params] = params
+        ll, gradient = self.objective(full_params)
+        return (ll, gradient[self.active_params])
+
     def get_numerical_gradient(self, transform_ps_noise: np.ndarray, delta: float) -> np.ndarray:
         n_grad = []
         for i in range(len(transform_ps_noise)):
@@ -202,25 +208,32 @@ class GP(object):
             self.current_best_ps = self.saved_ps
             self.current_best_noises = self.saved_noises
 
-    def optimize(self, messages=False, tol=1e-6, noise_bound: tp.Union[utils.general_float, tp.List[utils.general_float]] = 1e-10) -> None:
+    def optimize(self, messages=False, tol=1e-6, noise_bound: tp.Union[utils.general_float, tp.List[utils.general_float]] = 1e-10, active_params=None) -> None:
         import scipy
         import scipy.optimize
         self.messages = messages
         callback: tp.Callable = self.opt_callback
         begin = time.time()
         noise_bound_list = utils.make_desired_size(noise_bound, self.kernel.n_likelihood_splits)
+        ps_noise = list(map(lambda p: p.value, self.kernel.ps)) + self.noise.values
+        self.init_params = np.array(self.transformations_group(ps_noise))
+        if active_params is None:
+            active_params = np.full((len(ps_noise), ), True)
+        self.active_params = np.array(active_params)
         import warnings
         n_try = 1
         while True:
             try:
                 ps_noise = list(map(lambda p: p.value, self.kernel.ps)) + self.noise.values
-                transform_ps_noise = self.transformations_group(ps_noise)
+                transform_ps_noise = np.array(self.transformations_group(ps_noise))
                 bounds: tp.List[tp.Tuple[float, float]] = [(-np.inf, np.inf) for i in range(self.nks)]
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     for b in noise_bound_list:
                         bounds.append((float(np.log(b)), np.inf))
-                self.result = scipy.optimize.minimize(self.objective, transform_ps_noise, jac=True, method='L-BFGS-B', callback=callback, tol=tol, bounds=bounds, options={'maxls': 100})
+                bounds = np.array(bounds)[active_params].tolist()
+
+                self.result = scipy.optimize.minimize(self.active_objective, transform_ps_noise[self.active_params], jac=True, method='L-BFGS-B', callback=callback, tol=tol, bounds=bounds, options={'maxls': 100})
                 if self.result.success or (n_try >= 12):
                     break
                 print("Optimization not successful, restarting", file=self.file, flush=True)

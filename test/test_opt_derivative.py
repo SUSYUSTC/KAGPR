@@ -38,7 +38,7 @@ class Test(unittest.TestCase):
         gp = BBMM.GP(X, Y, kernel, noise)
         gp.optimize(messages=False)
         err = (gp.params - ref)/ref
-        self.assertTrue(np.max(np.abs(err)) < 1e-5)
+        self.assertTrue(np.max(np.abs(err)) < 1e-4)
 
     def test(self):
         self._run(False, 'same', ref)
