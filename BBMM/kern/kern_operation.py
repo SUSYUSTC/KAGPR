@@ -29,7 +29,6 @@ class ProductKernel(Kernel):
         self.cache_K: tp.Dict[str, tp.Any] = {}
         self.cache_dK_dp: tp.Dict[str, tp.Any] = {}
         self.ps = concatenate([k.ps for k in self.kern_list])
-        self.set_ps = concatenate([k.set_ps for k in self.kern_list])
         self.dK_dps = []
         self.transformations = concatenate([k.transformations for k in self.kern_list])
         self.default_cache: tp.Dict[str, tp.Any] = {}
@@ -123,7 +122,6 @@ class AdditionKernel(Kernel):
         self.nps = [len(k.ps) for k in self.kern_list]
         self.cumsum = np.concatenate([np.array([0]), np.cumsum(self.nps)])
         self.ps = concatenate([k.ps for k in self.kern_list])
-        self.set_ps = concatenate([k.set_ps for k in self.kern_list])
         self.dK_dps = []
         self.transformations = concatenate([k.transformations for k in self.kern_list])
         self.default_cache: tp.Dict[str, tp.Any] = {}

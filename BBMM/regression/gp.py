@@ -13,6 +13,7 @@ class GP(object):
     def __init__(self, X: np.ndarray, Y: np.ndarray, kernel: Kernel, noise: tp.Union[utils.general_float, tp.Iterable[utils.general_float]], GPU: tp.Union[bool, int] = False, split: bool = False, file=None):
         self.Nin = len(X)
         self.kernel = kernel
+        self.kernel.finalize()
         self.Nout = self.Nin * self.kernel.nout
         assert len(Y) == self.Nout
         self.noise = Noise(noise, self.kernel.n_likelihood_splits)
@@ -20,8 +21,10 @@ class GP(object):
         self.diag_reg = self.noise.get_diag_reg(self.likelihood_splits)
         self.diag_reg_gradient = self.noise.get_diag_reg_gradient(self.likelihood_splits)
         self.nks = len(self.kernel.ps)
+        self.unique_nks = len(self.kernel.unique_ps)
         self.nns = len(self.noise.values)
         self.transformations_group = param_transformation.Group(kernel.transformations + [param_transformation.log] * self.nns)
+        self.unique_transformations_group = param_transformation.Group(kernel.unique_transformations + [param_transformation.log] * self.nns)
         self.split = split
         if isinstance(GPU, bool):
             self.GPU = GPU
@@ -51,10 +54,10 @@ class GP(object):
             self.Y = Y
         if split:
             self.kernel_K = self.kernel.K_split
-            self.kernel_dK_dps = self.kernel.dK_dps_split
+            self.kernel_dK_dps = self.kernel.dK_dps_split_unique
         else:
             self.kernel_K = self.kernel.K
-            self.kernel_dK_dps = self.kernel.dK_dps
+            self.kernel_dK_dps = self.kernel.dK_dps_unique
         if file is None:
             self.file = sys.__stdout__
         else:
@@ -100,7 +103,7 @@ class GP(object):
             else:
                 X = self.X
             data = {
-                'kernel': self.kernel.to_dict(),
+                'kernel': self.kernel.to_dict_final(),
                 'X': utils.apply_recursively(self.xp.asnumpy, X),
                 'Y': self.xp.asnumpy(self.Y),
                 'w': self.xp.asnumpy(self.w),
@@ -109,7 +112,7 @@ class GP(object):
             }
         else:
             data = {
-                'kernel': self.kernel.to_dict(),
+                'kernel': self.kernel.to_dict_final(),
                 'X': self.X,
                 'Y': self.Y,
                 'w': self.w,
@@ -124,7 +127,7 @@ class GP(object):
     @classmethod
     def from_dict(self, data: tp.Dict[str, tp.Any], GPU: tp.Union[bool, int] = False, split: bool = False) -> 'GP':
         kernel_dict = data['kernel'][()]
-        kernel = get_kern_obj(kernel_dict)
+        kernel = get_kern_obj(kernel_dict, final=True)
         result = self(data['X'], data['Y'], kernel, noise=data['noise'][()], GPU=GPU, split=split)
         if GPU:
             result.w = result.xp.asarray(data['w'])
@@ -155,21 +158,21 @@ class GP(object):
                 result += self.w * self.noise.get_diag_reg(self.likelihood_splits)[:, None]
             return result
 
-    def update(self, ps: tp.List[utils.general_float], noises: tp.List[float]) -> None:
-        self.kernel.set_all_ps(ps)
+    def update(self, unique_ps: tp.List[utils.general_float], noises: tp.List[float]) -> None:
+        self.kernel.set_all_unique_ps(unique_ps)
         self.noise.values = noises
         self.kernel.clear_cache()
-        self.params = np.array(ps + noises)
+        self.params = np.array(unique_ps + noises)
 
-    def objective(self, transform_ps_noise: np.ndarray) -> tp.Tuple[float, np.ndarray]:
-        ps_noise = self.transformations_group.inv(transform_ps_noise.tolist())
+    def objective(self, unique_transform_ps_noise: np.ndarray) -> tp.Tuple[float, np.ndarray]:
+        unique_ps_noise = self.unique_transformations_group.inv(unique_transform_ps_noise.tolist())
         if self.messages:
-            print('x:' + ' %e' * len(ps_noise) % tuple(ps_noise), file=self.file, flush=True)
-        d_transform_ps_noise = self.transformations_group.d(ps_noise)
-        self.update(ps_noise[:self.nks], ps_noise[-self.nns:])
+            print('x:' + ' %e' * len(unique_ps_noise) % tuple(unique_ps_noise), file=self.file, flush=True)
+        unique_d_transform_ps_noise = self.unique_transformations_group.d(unique_ps_noise)
+        self.update(unique_ps_noise[:self.unique_nks], unique_ps_noise[-self.nns:])
         self.fit(grad=True)
-        self.transform_gradient = self.gradient / np.array(d_transform_ps_noise)
-        result = (-self.ll, -self.transform_gradient)
+        self.unique_transform_gradient = self.gradient / np.array(unique_d_transform_ps_noise)
+        result = (-self.ll, -self.unique_transform_gradient)
         return result
 
     def active_objective(self, params: np.ndarray) -> tp.Tuple[float, np.ndarray]:
@@ -192,8 +195,8 @@ class GP(object):
 
     def opt_callback(self, x):
         if self.messages:
-            #print('gradient', self.transform_gradient)
-            print('-ll', np.format_float_scientific(-self.ll, precision=6), 'gradient', np.linalg.norm(self.transform_gradient), file=self.file, flush=True)
+            print('gradient', self.unique_transform_gradient)
+            print('-ll', np.format_float_scientific(-self.ll, precision=6), 'gradient', np.linalg.norm(self.unique_transform_gradient), file=self.file, flush=True)
             print(file=self.file, flush=True)
         self.saved_ps = list(map(lambda p: p.value, self.kernel.ps))
         self.saved_noises = self.noise.values
@@ -215,25 +218,25 @@ class GP(object):
         callback: tp.Callable = self.opt_callback
         begin = time.time()
         noise_bound_list = utils.make_desired_size(noise_bound, self.kernel.n_likelihood_splits)
-        ps_noise = list(map(lambda p: p.value, self.kernel.ps)) + self.noise.values
-        self.init_params = np.array(self.transformations_group(ps_noise))
+        unique_ps_noise = list(map(lambda p: p.value, self.kernel.unique_ps)) + self.noise.values
+        self.init_params = np.array(self.unique_transformations_group(unique_ps_noise))
         if active_params is None:
-            active_params = np.full((len(ps_noise), ), True)
+            active_params = np.full((len(unique_ps_noise), ), True)
         self.active_params = np.array(active_params)
         import warnings
         n_try = 1
         while True:
             try:
-                ps_noise = list(map(lambda p: p.value, self.kernel.ps)) + self.noise.values
-                transform_ps_noise = np.array(self.transformations_group(ps_noise))
-                bounds: tp.List[tp.Tuple[float, float]] = [(-np.inf, np.inf) for i in range(self.nks)]
+                unique_ps_noise = list(map(lambda p: p.value, self.kernel.unique_ps)) + self.noise.values
+                unique_transform_ps_noise = np.array(self.unique_transformations_group(unique_ps_noise))
+                bounds: tp.List[tp.Tuple[float, float]] = [(-np.inf, np.inf) for i in range(self.unique_nks)]
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     for b in noise_bound_list:
                         bounds.append((float(np.log(b)), np.inf))
                 bounds = np.array(bounds)[active_params].tolist()
 
-                self.result = scipy.optimize.minimize(self.active_objective, transform_ps_noise[self.active_params], jac=True, method='L-BFGS-B', callback=callback, tol=tol, bounds=bounds, options={'maxls': 100})
+                self.result = scipy.optimize.minimize(self.active_objective, unique_transform_ps_noise[self.active_params], jac=True, method='L-BFGS-B', callback=callback, tol=tol, bounds=bounds, options={'maxls': 100})
                 if self.result.success or (n_try >= 12):
                     break
                 print("Optimization not successful, restarting", file=self.file, flush=True)

@@ -29,43 +29,69 @@ class Kernel(object):
     def check(self):
         assert hasattr(self, 'default_cache')
         assert hasattr(self, 'ps')
-        assert hasattr(self, 'set_ps')
         assert hasattr(self, 'dK_dps')
         assert hasattr(self, 'transformations')
         assert hasattr(self, 'nout')
+        self.set_ps = []
+        for i in range(len(self.ps)):
+            def func(value: utils.general_float, i=i):
+                return self.set_p(i, value)
+            self.set_ps.append(func)
+
+    def finalize(self):
+        self.unique_ps, self.unique_ps_indices = param.group_params(self.ps)
+        self.unique_ps_first_index = [item[0] for item in self.unique_ps_indices]
+        self.unique_transformations = [self.transformations[i] for i in self.unique_ps_first_index]
+
+        self.set_unique_ps = []
+        for i in range(len(self.unique_ps)):
+            def func(value: utils.general_float, i=i):
+                return self.set_unique_p(i, value)
+            self.set_unique_ps.append(func)
+
         self.dK_dps_split = []
         for i in range(len(self.ps)):
             def func(X, X2=None, i=i, **kwargs):
                 return self.dK_dp_split(i, X, X2, **kwargs)
             self.dK_dps_split.append(func)
-        self.unique_params, self.unique_params_indices = param.group_params(self.ps)
 
         self.dK_dps_unique = []
-        for i in range(len(self.unique_params)):
+        for i in range(len(self.unique_ps)):
             def func(X, X2=None, i=i, **kwargs):
                 return self.dK_dp_unique(i, X, X2, **kwargs)
             self.dK_dps_unique.append(func)
 
         self.dK_dps_split_unique = []
-        for i in range(len(self.unique_params)):
+        for i in range(len(self.unique_ps)):
             def func(X, X2=None, i=i, **kwargs):
                 return self.dK_dp_split_unique(i, X, X2, **kwargs)
             self.dK_dps_split_unique.append(func)
+
+    def set_p(self, i: int, value: utils.general_float):
+        self.ps[i].value = value
 
     def set_all_ps(self, params: tp.List[utils.general_float]) -> None:
         assert len(params) == len(self.ps)
         for i in range(len(self.ps)):
             self.set_ps[i](params[i])
 
+    def set_unique_p(self, i: int, value:utils.general_float):
+        self.unique_ps[i].value = value
+
+    def set_all_unique_ps(self, params: tp.List[utils.general_float]) -> None:
+        assert len(params) == len(self.unique_ps)
+        for i in range(len(self.unique_ps)):
+            self.set_ps
+
     def K(self, X1, X2=None, cache: tp.Dict[str, tp.Any] = {}):
         raise NotImplementedError
 
     def dK_dp_unique(self, i, X, X2=None, **kwargs):
-        indices = self.unique_params_indices[i]
+        indices = self.unique_ps_indices[i]
         return sum([self.dK_dps[index](X, X2, **kwargs) for index in indices])
 
     def dK_dp_split_unique(self, i, X, X2=None, **kwargs):
-        indices = self.unique_params_indices[i]
+        indices = self.unique_ps_indices[i]
         return sum([self.dK_dps_split[index](X, X2, **kwargs) for index in indices])
 
     def split_likelihood(self, Nin: int) -> tp.List[np.ndarray]:
@@ -80,8 +106,29 @@ class Kernel(object):
     def to_dict(self) -> tp.Dict[str, tp.Any]:
         raise NotImplementedError
 
+    def to_dict_final(self) -> tp.Dict[str, tp.Any]:
+        d = self.to_dict()
+        d['unique_ps'] = list(map(lambda x: x.value, self.unique_ps))
+        d['unique_ps_indices'] = self.unique_ps_indices
+        return d
+
+    @classmethod
     def from_dict(self, data: tp.Dict[str, tp.Any]) -> 'Kernel':
         raise NotImplementedError
+
+    @classmethod
+    def from_dict_final(self, data:tp.Dict[str, tp.Any]) -> 'Kernel':
+        kernel = self.from_dict(data)
+        if ('unique_ps' in data) and ('unique_ps_indices' in data):
+            unique_ps = data['unique_ps']
+            unique_ps_indices = data['unique_ps_indices']
+            for i in range(len(unique_ps)):
+                indices = unique_ps_indices[i]
+                name = kernel.ps[indices[0]].name
+                p = param.Param(name, unique_ps[i])
+                for index in unique_ps_indices[i]:
+                    kernel.ps[index] = p
+        return kernel
 
     def copy(self) -> 'Kernel':
         return self.from_dict(self.to_dict())

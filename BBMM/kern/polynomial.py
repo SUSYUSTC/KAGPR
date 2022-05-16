@@ -13,7 +13,6 @@ class Linear(Kernel):
         self.default_cache = {'g': 0}
         self.dK_dps = []
         self.ps = []
-        self.set_ps = []
         self.nout = 1
         self.transformations = []
         self.check()

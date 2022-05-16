@@ -5,8 +5,12 @@ def get_kern(name: str) -> Kernel:
     return tp.cast(Kernel, eval(name))
 
 
-def get_kern_obj(data: tp.Dict[str, tp.Any]) -> Kernel:
-    return tp.cast(Kernel, eval(data['name'])).from_dict(data)
+def get_kern_obj(data: tp.Dict[str, tp.Any], final=False) -> Kernel:
+    kern = get_kern(data['name'])
+    if final:
+        return kern.from_dict_final(data)
+    else:
+        return kern.from_dict(data)
 
 
 from . import stationary
