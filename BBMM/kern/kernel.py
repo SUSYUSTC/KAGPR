@@ -38,6 +38,19 @@ class Kernel(object):
             def func(X, X2=None, i=i, **kwargs):
                 return self.dK_dp_split(i, X, X2, **kwargs)
             self.dK_dps_split.append(func)
+        self.unique_params, self.unique_params_indices = param.group_params(self.ps)
+
+        self.dK_dps_unique = []
+        for i in range(len(self.unique_params)):
+            def func(X, X2=None, i=i, **kwargs):
+                return self.dK_dp_unique(i, X, X2, **kwargs)
+            self.dK_dps_unique.append(func)
+
+        self.dK_dps_split_unique = []
+        for i in range(len(self.unique_params)):
+            def func(X, X2=None, i=i, **kwargs):
+                return self.dK_dp_split_unique(i, X, X2, **kwargs)
+            self.dK_dps_split_unique.append(func)
 
     def set_all_ps(self, params: tp.List[utils.general_float]) -> None:
         assert len(params) == len(self.ps)
@@ -46,6 +59,14 @@ class Kernel(object):
 
     def K(self, X1, X2=None, cache: tp.Dict[str, tp.Any] = {}):
         raise NotImplementedError
+
+    def dK_dp_unique(self, i, X, X2=None, **kwargs):
+        indices = self.unique_params_indices[i]
+        return sum([self.dK_dps[index](X, X2, **kwargs) for index in indices])
+
+    def dK_dp_split_unique(self, i, X, X2=None, **kwargs):
+        indices = self.unique_params_indices[i]
+        return sum([self.dK_dps_split[index](X, X2, **kwargs) for index in indices])
 
     def split_likelihood(self, Nin: int) -> tp.List[np.ndarray]:
         return [np.arange(Nin)]
