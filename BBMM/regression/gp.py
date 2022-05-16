@@ -161,10 +161,10 @@ class GP(object):
     def update(self, unique_ps: tp.List[utils.general_float], noises: tp.List[float]) -> None:
         self.kernel.set_all_unique_ps(unique_ps)
         self.noise.values = noises
-        self.kernel.clear_cache()
         self.params = np.array(unique_ps + noises)
 
     def objective(self, unique_transform_ps_noise: np.ndarray) -> tp.Tuple[float, np.ndarray]:
+        self.kernel.clear_cache()
         unique_ps_noise = self.unique_transformations_group.inv(unique_transform_ps_noise.tolist())
         if self.messages:
             print('x:' + ' %e' * len(unique_ps_noise) % tuple(unique_ps_noise), file=self.file, flush=True)
@@ -172,6 +172,12 @@ class GP(object):
         self.update(unique_ps_noise[:self.unique_nks], unique_ps_noise[-self.nns:])
         self.fit(grad=True)
         self.unique_transform_gradient = self.gradient / np.array(unique_d_transform_ps_noise)
+        '''
+        if self.messages:
+            print(-self.ll)
+            print(self.gradient)
+            print(self.unique_transform_gradient)
+        '''
         result = (-self.ll, -self.unique_transform_gradient)
         return result
 

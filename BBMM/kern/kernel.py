@@ -81,7 +81,7 @@ class Kernel(object):
     def set_all_unique_ps(self, params: tp.List[utils.general_float]) -> None:
         assert len(params) == len(self.unique_ps)
         for i in range(len(self.unique_ps)):
-            self.set_ps
+            self.set_unique_ps[i](params[i])
 
     def K(self, X1, X2=None, cache: tp.Dict[str, tp.Any] = {}):
         raise NotImplementedError
