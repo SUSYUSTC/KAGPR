@@ -11,6 +11,8 @@ from .pcg import PCG
 
 class GP(object):
     def __init__(self, X: np.ndarray, Y: np.ndarray, kernel: Kernel, noise: tp.Union[utils.general_float, tp.Iterable[utils.general_float]], GPU: tp.Union[bool, int] = False, split: bool = False, file=None):
+        self.raw_X = X
+        self.raw_Y = Y
         self.Nin = len(X)
         self.kernel = kernel
         self.Nout = self.Nin * self.kernel.nout
@@ -23,32 +25,7 @@ class GP(object):
         self.nns = len(self.noise.values)
         self.transformations_group = param_transformation.Group(kernel.transformations + [param_transformation.log] * self.nns)
         self.split = split
-        if isinstance(GPU, bool):
-            self.GPU = GPU
-            self.nGPUs = int(GPU)
-        else:
-            self.GPU = GPU > 0
-            self.nGPUs = GPU
         self.kernel_options = {}
-        if self.GPU:
-            import cupy as cp
-            self.xp = cp
-            import cupyx
-            import cupyx.scipy.linalg
-            from ..multiGPU import copyed_array
-            cupyx.seterr(linalg='raise')
-            self.xp_solve_triangular = cupyx.scipy.linalg.solve_triangular
-            if split:
-                self.X = copyed_array(X, self.nGPUs)
-            else:
-                self.X = utils.apply_recursively(cp.asarray, X)
-            self.Y = cp.asarray(Y).copy()
-        else:
-            import scipy
-            self.xp = np
-            self.xp_solve_triangular = scipy.linalg.solve_triangular
-            self.X = X
-            self.Y = Y
         if split:
             self.kernel_K = self.kernel.K_split
             self.kernel_dK_dps = self.kernel.dK_dps_split
@@ -59,6 +36,34 @@ class GP(object):
             self.file = sys.__stdout__
         else:
             self.file = file
+        self.set_GPU(GPU)
+
+    def set_GPU(self, GPU):
+        if isinstance(GPU, bool):
+            self.GPU = GPU
+            self.nGPUs = int(GPU)
+        else:
+            self.GPU = GPU > 0
+            self.nGPUs = GPU
+        if self.GPU:
+            import cupy as cp
+            self.xp = cp
+            import cupyx
+            import cupyx.scipy.linalg
+            from ..multiGPU import copyed_array
+            cupyx.seterr(linalg='raise')
+            self.xp_solve_triangular = cupyx.scipy.linalg.solve_triangular
+            if self.split:
+                self.X = copyed_array(self.raw_X, self.nGPUs)
+            else:
+                self.X = utils.apply_recursively(cp.asarray, self.raw_X)
+            self.Y = cp.asarray(self.raw_Y).copy()
+        else:
+            import scipy
+            self.xp = np
+            self.xp_solve_triangular = scipy.linalg.solve_triangular
+            self.X = self.raw_X
+            self.Y = self.raw_Y
 
     def set_kernel_options(self, **options):
         self.kernel_options = options
