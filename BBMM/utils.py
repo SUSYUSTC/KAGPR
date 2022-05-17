@@ -78,3 +78,10 @@ def make_slices(N, max_len):
     lst = [slice(i * max_len, (i + 1) * max_len, None) for i in range(n-1)]
     lst.append(slice((n-1) * max_len, N))
     return lst
+
+
+def where_is(value, lst):
+    for i, item in enumerate(lst):
+        if value is item:
+            return i
+    return -1

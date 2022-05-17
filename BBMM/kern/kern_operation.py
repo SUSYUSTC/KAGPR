@@ -29,7 +29,6 @@ class ProductKernel(Kernel):
         self.cache_K: tp.Dict[str, tp.Any] = {}
         self.cache_dK_dp: tp.Dict[str, tp.Any] = {}
         self.ps = concatenate([k.ps for k in self.kern_list])
-        self.set_ps = concatenate([k.set_ps for k in self.kern_list])
         self.dK_dps = []
         self.transformations = concatenate([k.transformations for k in self.kern_list])
         self.default_cache: tp.Dict[str, tp.Any] = {}
@@ -123,7 +122,6 @@ class AdditionKernel(Kernel):
         self.nps = [len(k.ps) for k in self.kern_list]
         self.cumsum = np.concatenate([np.array([0]), np.cumsum(self.nps)])
         self.ps = concatenate([k.ps for k in self.kern_list])
-        self.set_ps = concatenate([k.set_ps for k in self.kern_list])
         self.dK_dps = []
         self.transformations = concatenate([k.transformations for k in self.kern_list])
         self.default_cache: tp.Dict[str, tp.Any] = {}
@@ -151,7 +149,12 @@ class AdditionKernel(Kernel):
         return result
 
     def get_subX(self, X, kern_index):
-        return [x[kern_index] for x in X]
+        xp = utils.get_array_module(X)
+        result = [x[kern_index] for x in X]
+        try:
+            return xp.array(result)
+        except:
+            return result
 
     @Cache('g')
     def dK_dp(self, i: int, X, X2=None):

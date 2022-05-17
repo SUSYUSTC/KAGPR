@@ -14,7 +14,6 @@ class Difference(Kernel):
         self.kernel = kernel
         self.nout = self.kernel.nout
         self.ps = self.kernel.ps
-        self.set_ps = self.kernel.set_ps
         self.dK_dps = []
         for i in range(len(self.kernel.ps)):
             def func(X, X2=None, i=i, **kwargs):
