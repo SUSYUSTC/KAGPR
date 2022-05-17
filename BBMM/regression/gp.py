@@ -153,12 +153,12 @@ class GP(object):
                 X_GPU = copyed_array(X, self.nGPUs)
             else:
                 X_GPU = utils.apply_recursively(self.xp.array, X)
-            result = self.xp.asnumpy(self.kernel_K(X_GPU, self.X).dot(self.w))
+            result = self.xp.asnumpy(self.kernel_K(X_GPU, self.X, **self.kernel_options).dot(self.w))
             if training:
                 result += self.xp.asnumpy(self.w) * self.noise.get_diag_reg(self.likelihood_splits)[:, None]
             return result
         else:
-            result = self.kernel_K(X, self.X).dot(self.w)
+            result = self.kernel_K(X, self.X, **self.kernel_options).dot(self.w)
             if training:
                 result += self.w * self.noise.get_diag_reg(self.likelihood_splits)[:, None]
             return result
