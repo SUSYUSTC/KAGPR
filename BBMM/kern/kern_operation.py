@@ -149,7 +149,12 @@ class AdditionKernel(Kernel):
         return result
 
     def get_subX(self, X, kern_index):
-        return [x[kern_index] for x in X]
+        xp = utils.get_array_module(X)
+        result = [x[kern_index] for x in X]
+        try:
+            return xp.array(result)
+        except:
+            return result
 
     @Cache('g')
     def dK_dp(self, i: int, X, X2=None):
