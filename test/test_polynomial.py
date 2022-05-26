@@ -23,7 +23,7 @@ class Test(unittest.TestCase):
         err = np.max(np.abs(dK_dorder - dK_dorder_ref))
         gp = BBMM.GP(X, Y, k, noise, GPU=GPU)
         gp.optimize(messages=False)
-        err = gp.params[0] - np.pi
+        err = np.abs(gp.params[0] - np.pi)
         self.assertTrue(err < 1e-6)
 
     def test_CPU(self):
