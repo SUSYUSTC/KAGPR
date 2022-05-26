@@ -25,5 +25,5 @@ from .difference import Difference
 from . import kern_operation
 from .kern_operation import ProductKernel, AdditionKernel
 from . import polynomial
-from .polynomial import Linear
+from .polynomial import Linear, Polynomial
 from .summation import Summation
