@@ -19,6 +19,7 @@ class Stationary(Kernel):
         self.d3K_dpsdXdX2 = [self.d3K_dXdX2dv, self.d3K_dXdX2dl]
         self.variance = Param('variance', 1.0)
         self.lengthscale = Param('lengthscale', 1.0)
+        self.ps_bound = [(0, np.inf), (0, np.inf)]
         self.ps = [self.variance, self.lengthscale]
         self.transformations = [param_transformation.log, param_transformation.log]
         self.nout = 1

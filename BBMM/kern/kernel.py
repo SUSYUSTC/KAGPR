@@ -11,6 +11,7 @@ class Kernel(object):
     cache_data: tp.Dict[str, tp.Any]
     default_cache: tp.Dict[str, tp.Any]
     ps: tp.List[param.Param]
+    ps_bound: tp.List[tp.Tuple[float, float]]
     set_ps: tp.List[tp.Callable[[utils.general_float], None]]
     dK_dps: tp.List[tp.Callable]
     d2K_dpsdX: tp.List[tp.Callable]
@@ -42,6 +43,7 @@ class Kernel(object):
         self.unique_ps, self.unique_ps_indices = param.group_params(self.ps)
         self.unique_ps_first_index = [item[0] for item in self.unique_ps_indices]
         self.unique_transformations = [self.transformations[i] for i in self.unique_ps_first_index]
+        self.unique_ps_bound = [self.ps_bound[i] for i in self.unique_ps_first_index]
 
         self.set_unique_ps = []
         for i in range(len(self.unique_ps)):

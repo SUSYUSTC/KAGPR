@@ -240,11 +240,12 @@ class GP(object):
             try:
                 unique_ps_noise = list(map(lambda p: p.value, self.kernel.unique_ps)) + self.noise.values
                 unique_transform_ps_noise = np.array(self.unique_transformations_group(unique_ps_noise))
-                bounds: tp.List[tp.Tuple[float, float]] = [(-np.inf, np.inf) for i in range(self.unique_nks)]
+                bounds: tp.List[tp.Tuple[float, float]] = self.kernel.unique_ps_bound.copy()
                 with warnings.catch_warnings():
                     warnings.simplefilter("ignore")
                     for b in noise_bound_list:
-                        bounds.append((float(np.log(b)), np.inf))
+                        bounds.append((float(b), np.inf))
+                bounds = self.unique_transformations_group.transform_bounds(bounds)
                 bounds = np.array(bounds)[active_params].tolist()
 
                 self.result = scipy.optimize.minimize(self.active_objective, unique_transform_ps_noise[self.active_params], jac=True, method='L-BFGS-B', callback=callback, tol=tol, bounds=bounds, options={'maxls': 100})

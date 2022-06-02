@@ -20,6 +20,7 @@ class GeneralDerivative(Kernel):
         self.dims_grad = [slice(self.d * (i + 1), self.d * (i + 2)) for i in range(self.n)]
         self.kernel = kernel
         self.ps = self.kernel.ps
+        self.ps_bound = self.kernel.ps_bound
         self.dK_dps = []
         for i in range(len(self.kernel.ps)):
             def func(X, X2=None, i=i, **kwargs):
@@ -79,6 +80,7 @@ class FullDerivative(GeneralDerivative):
         if optfactor:
             self.ps.append(self.factor)
             self.dK_dps.append(self.dK_dfactor)
+            self.ps_bound.append((0, np.inf))
             self.transformations.append(param_transformation.log)
         self.check()
 

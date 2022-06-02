@@ -12,6 +12,7 @@ class Summation(Kernel):
         self.default_cache = {}
         self.kernel = kernel
         self.ps = self.kernel.ps
+        self.ps_bound = self.kernel.ps_bound
         self.transformations = self.kernel.transformations
         self.nout = self.kernel.nout
         self.dK_dps = []

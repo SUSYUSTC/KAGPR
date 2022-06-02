@@ -57,10 +57,12 @@ class Polynomial(Kernel):
             self.dK_dps = [self.dK_dorder]
             self.ps = [self.order]
             self.transformations = [param_transformation.linear]
+            self.ps_bound = [(0, np.inf)]
         else:
             self.dK_dps = []
             self.ps = []
             self.transformations = []
+            self.ps_bound = []
         self.check()
 
     def set_order(self, order):

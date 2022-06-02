@@ -1,5 +1,8 @@
 import typing as tp
 import numpy as np
+import warnings
+
+
 class Transformation(object):
     def __init__(self) -> None:
         pass
@@ -12,6 +15,7 @@ class Transformation(object):
 
     def inv(self, x: float) -> float:
         raise NotImplementedError
+
 
 class Linear(Transformation):
     def __init__(self) -> None:
@@ -61,3 +65,10 @@ class Group(object):
     def inv(self, x: tp.List[float]) -> tp.List[float]:
         assert len(x) == self.n
         return [self.group[i].inv(x[i]) for i in range(self.n)]
+
+    def transform_bounds(self, x: tp.List[tp.Tuple[float, float]]) -> tp.List[tp.Tuple[float, float]]:
+        assert len(x) == self.n
+        import warnings
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", message="divide by zero encountered in log")
+            return [tuple([self.group[i](item) for item in x[i]]) for i in range(self.n)]
