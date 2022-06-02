@@ -11,7 +11,7 @@ setup(
     description="BBMM",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/SUSYUSTC/BBMM",
+    url="https://github.com/SUSYUSTC/BBMM-dev",
     license='Open Source',
 
     # What packages are required for install
