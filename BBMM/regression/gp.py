@@ -221,8 +221,6 @@ class GP(object):
             self.current_best_ll = self.ll
             self.current_best_ps = self.saved_ps
             self.current_best_noises = self.saved_noises
-            print('update best', self.current_best_ps, self.current_best_noises, self.current_best_ll)
-            np.save("K", self.kernel_K(self.X))
 
     def optimize(self, messages=False, tol=1e-6, maxrestart=12, noise_bound: tp.Union[utils.general_float, tp.List[utils.general_float]] = 1e-10, active_params=None) -> None:
         import scipy
@@ -266,7 +264,6 @@ class GP(object):
         self.success = self.result.success
         if self.ll < self.current_best_ll:
             self.kernel.clear_cache()
-            print('use', self.current_best_ps, self.current_best_noises)
             self.update(self.current_best_ps, self.current_best_noises)
             self.fit(grad=True)
             print('Optimization failed, taking the best history value, -ll =', -self.ll, file=self.file, flush=True)
