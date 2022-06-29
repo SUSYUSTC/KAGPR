@@ -206,7 +206,7 @@ class GP(object):
 
     def opt_callback(self, x):
         if self.messages:
-            print('gradient', self.unique_transform_gradient)
+            #print('gradient', self.unique_transform_gradient)
             print('-ll', np.format_float_scientific(-self.ll, precision=6), 'gradient', np.linalg.norm(self.unique_transform_gradient), file=self.file, flush=True)
             print(file=self.file, flush=True)
         self.saved_ps = list(map(lambda p: p.value, self.kernel.ps))
@@ -221,8 +221,10 @@ class GP(object):
             self.current_best_ll = self.ll
             self.current_best_ps = self.saved_ps
             self.current_best_noises = self.saved_noises
+            print('update best', self.current_best_ps, self.current_best_noises, self.current_best_ll)
+            np.save("K", self.kernel_K(self.X))
 
-    def optimize(self, messages=False, tol=1e-6, noise_bound: tp.Union[utils.general_float, tp.List[utils.general_float]] = 1e-10, active_params=None) -> None:
+    def optimize(self, messages=False, tol=1e-6, maxrestart=12, noise_bound: tp.Union[utils.general_float, tp.List[utils.general_float]] = 1e-10, active_params=None) -> None:
         import scipy
         import scipy.optimize
         self.messages = messages
@@ -249,7 +251,7 @@ class GP(object):
                 bounds = np.array(bounds)[active_params].tolist()
 
                 self.result = scipy.optimize.minimize(self.active_objective, unique_transform_ps_noise[self.active_params], jac=True, method='L-BFGS-B', callback=callback, tol=tol, bounds=bounds, options={'maxls': 100})
-                if self.result.success or (n_try >= 12):
+                if self.result.success or (n_try >= maxrestart):
                     break
                 print("Optimization not successful, restarting", file=self.file, flush=True)
                 print("current x", self.result.x, file=self.file, flush=True)
@@ -263,6 +265,8 @@ class GP(object):
 
         self.success = self.result.success
         if self.ll < self.current_best_ll:
+            self.kernel.clear_cache()
+            print('use', self.current_best_ps, self.current_best_noises)
             self.update(self.current_best_ps, self.current_best_noises)
             self.fit(grad=True)
             print('Optimization failed, taking the best history value, -ll =', -self.ll, file=self.file, flush=True)
