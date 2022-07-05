@@ -1,5 +1,4 @@
-# Gaussian Process (GP) and Revised BBMM methods for GP
-
+# Gaussian Process Regression(GPR) and Kernel-Addition GPR (KAGPR)
 ## Installation ##
 ```python setup.py install```
 
@@ -41,7 +40,9 @@ Y_pred = bbmm.predict(X)
 bbmm.save("model.npz")
 ```
 
-An KA-GPR example to learn $\sum^{N}_{i=0} \sin(\sum_{j=1}^{d} x_{ij})$ with varying N.
+A KA-GPR example to learn 
+$$y = \sum^{N}\_{i=1} \sin (\sum^{d}\_{j=1} x\_{ij})$$
+with varying $N$ and $d=5$.
 Using training data with $5\leq N \leq 10$, we can predict data with $10\leq N \leq 20$.
 ```
 import numpy as np
@@ -57,7 +58,6 @@ d = 5
 sizes_test = np.random.randint(10, 20, size=(20, ))
 X_test = [np.random.random((n, d)) for n in sizes_test]
 Y_test = np.array([func(x) for x in X_test])[:, None]
-rel_errs = []
 for N in [5, 10, 20, 30, 50]:
     # training data with N from 5-10
     sizes = np.random.randint(5, 10, size=(N, ))
@@ -69,20 +69,11 @@ for N in [5, 10, 20, 30, 50]:
     gp.optimize(messages=False)
     Y_test = np.array([func(x) for x in X_test])[:, None]
     pred_test = gp.predict(X_test)
-    rel_errs.append(np.mean(np.abs((pred_test - Y_test) / Y_test)))
-print(*rel_errs, sep='\n')
+    rel_err = np.mean(np.abs((pred_test - Y_test) / Y_test))
 ```
-The result depends on the machine and random seed. What I got is
+Plot the relation between `N` and `rel_err`:
 
-0.0997368608827424
-
-0.0722073273267897
-
-0.03642092660762913
-
-0.015870446068140552
-
-0.008450891824084485
+<img src="https://user-images.githubusercontent.com/30529122/177425182-e2d2bceb-aef8-493a-bc98-e10e95c89ff9.png" width="400">
 
 The kernel calculations are cached by default. If you want to play with them by yourself you may want `YOUR_KERNEL.clear_cache` or disable the cacheing by `YOUR_KERNEL.set_cache_state(False)`.
 
