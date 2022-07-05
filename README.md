@@ -43,7 +43,7 @@ bbmm.save("model.npz")
 A KA-GPR example to learn 
 $$y = \sum^{N}\_{i=1} \sin (\sum^{d}\_{j=1} x\_{ij})$$
 with varying $N$ and $d=5$.
-Using training data with $5\leq N \leq 10$, we can predict data with $10\leq N \leq 20$.
+Using training data with $5\leq N < 10$, we can predict data with $10\leq N < 20$.
 ```
 import numpy as np
 import GPR
