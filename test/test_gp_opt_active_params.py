@@ -1,6 +1,6 @@
 import numpy as np
 import time
-import BBMM
+from get_package import package
 import GPy
 import unittest
 
@@ -12,13 +12,13 @@ class Test(unittest.TestCase):
         X = np.load("./X_test.npy")
         Y = np.load("./Y_test.npy")
         noise = 1e-5
-        k = BBMM.kern.RBF()
+        k = package.kern.RBF()
         lengthscale = 1.0
         variance = 1.0
         k.set_lengthscale(lengthscale)
         k.set_variance(variance)
         begin = time.time()
-        gp = BBMM.GP(X, Y, k, noise, GPU=GPU)
+        gp = package.GP(X, Y, k, noise, GPU=GPU)
         gp.optimize(messages=False, active_params=[True, False, True])
         err = np.max(np.abs((gp.params - params_ref) / params_ref))
         self.assertTrue(err < 1e-4)

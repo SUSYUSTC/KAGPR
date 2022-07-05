@@ -1,6 +1,6 @@
 import numpy as np
 import time
-import BBMM
+from get_package import package
 import GPy
 import unittest
 import os
@@ -18,12 +18,12 @@ class Test(unittest.TestCase):
         X1 = X
         X2 = np.repeat(X[:, None, :], 2, axis=1)
         noise = 1e-5
-        k1 = BBMM.kern.RBF()
-        k_temp = BBMM.kern.RBF()
-        k2 = BBMM.kern.AdditionKernel([k_temp, k_temp])
-        gp1 = BBMM.GP(X1, Y, k1, noise, GPU=GPU)
+        k1 = package.kern.RBF()
+        k_temp = package.kern.RBF()
+        k2 = package.kern.AdditionKernel([k_temp, k_temp])
+        gp1 = package.GP(X1, Y, k1, noise, GPU=GPU)
         gp1.optimize(messages=False)
-        gp2 = BBMM.GP(X2, Y, k2, noise, GPU=GPU)
+        gp2 = package.GP(X2, Y, k2, noise, GPU=GPU)
         gp2.optimize(messages=False)
         err1 = np.max(np.abs((gp1.params - params_ref_1) / params_ref_1))
         err2 = np.max(np.abs((gp2.params - params_ref_2) / params_ref_2))
@@ -31,9 +31,9 @@ class Test(unittest.TestCase):
         self.assertTrue(err2 < 1e-3)
         gp1.save("model1.npz")
         gp2.save("model2.npz")
-        gp1_load = BBMM.GP.load("./model1.npz", GPU=GPU)
+        gp1_load = package.GP.load("./model1.npz", GPU=GPU)
         gp1_load.optimize(messages=False)
-        gp2_load = BBMM.GP.load("./model2.npz", GPU=GPU)
+        gp2_load = package.GP.load("./model2.npz", GPU=GPU)
         gp2_load.optimize(messages=False)
         err1 = np.max(np.abs(gp1_load.predict(X1) - gp1.predict(X1)))
         err2 = np.max(np.abs(gp2_load.predict(X2) - gp2.predict(X2)))

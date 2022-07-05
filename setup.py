@@ -5,13 +5,13 @@ with open("README.md", "r", encoding="utf-8") as fh:
 
 setup(
     # Self-descriptive entries which should always be present
-    name='BBMM',
+    name='GPR',
     author='Jiace Sun',
     author_email='jsun3@caltech.edu',
-    description="BBMM",
+    description="Kernel-Addition Gaussian Process Regression",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    url="https://github.com/SUSYUSTC/BBMM-dev",
+    url="https://github.com/SUSYUSTC/KAGPR",
     license='Open Source',
 
     # What packages are required for install
@@ -21,7 +21,7 @@ setup(
             'unittest',
         ],
     },
-    packages=["BBMM",
-              "BBMM.kern",
-              "BBMM.regression"],
+    packages=["GPR",
+              "GPR.kern",
+              "GPR.regression"],
 )

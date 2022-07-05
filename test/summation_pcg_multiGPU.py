@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-import BBMM
+from get_package import package
 import cupy as cp
 import os
 
@@ -23,14 +23,14 @@ class Test(unittest.TestCase):
         X_test = [np.random.random((n, 10)) for n in sizes]
         Y_train = np.array([func(x) for x in X_train])[:, None]
         Y_test = np.array([func(x) for x in X_test])[:, None]
-        kernel = BBMM.kern.RBF()
-        kernel_summation = BBMM.kern.Summation(kernel)
+        kernel = package.kern.RBF()
+        kernel_summation = package.kern.Summation(kernel)
         kernel_summation.set_all_ps(params_ref[0:-1])
-        gp = BBMM.GP(X_train, Y_train, kernel_summation, params_ref[-1], GPU=nGPUs, split=True)
+        gp = package.GP(X_train, Y_train, kernel_summation, params_ref[-1], GPU=nGPUs, split=True)
         gp.set_kernel_options(onetime_number=2)
         K = kernel_summation.K_split(gp.X, save_on_CPU=True, onetime_number=3)
         assert isinstance(K, np.ndarray)
-        w = BBMM.PCG(K, gp.diag_reg, Y_train, 3, nGPUs=nGPUs, thres=1e-8, verbose=False)
+        w = package.PCG(K, gp.diag_reg, Y_train, 3, nGPUs=nGPUs, thres=1e-8, verbose=False)
         assert isinstance(w, np.ndarray)
         gp.input_w(cp.asarray(w))
         pred_train = gp.predict(X_train)
@@ -43,7 +43,7 @@ class Test(unittest.TestCase):
         rel_err = np.max(np.abs((pred_test - Y_test) / Y_test))
         self.assertTrue(rel_err < 0.1)
         gp.save("model")
-        err = np.max(np.abs(BBMM.GP.load("model.npz", True).predict(X_test) - pred_test))
+        err = np.max(np.abs(package.GP.load("model.npz", True).predict(X_test) - pred_test))
         self.assertTrue(err < 1e-10)
         os.remove("model.npz")
 

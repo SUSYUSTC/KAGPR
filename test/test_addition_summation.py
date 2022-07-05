@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-import BBMM
+from get_package import package
 import os
 
 
@@ -33,12 +33,12 @@ class Test(unittest.TestCase):
         X_test = list(zip(X1_test, X2_test))
         Y_train = np.array([func_addition(x) for x in X_train])[:, None]
         Y_test = np.array([func_addition(x) for x in X_test])[:, None]
-        kernel1 = BBMM.kern.RBF()
-        kernel2 = BBMM.kern.Matern52()
-        kernel1_summation = BBMM.kern.Summation(kernel1)
-        kernel2_summation = BBMM.kern.Summation(kernel2)
-        kernel_addition_summation = BBMM.kern.AdditionKernel([kernel1_summation, kernel2_summation])
-        gp = BBMM.GP(X_train, Y_train, kernel_addition_summation, 1e-4, GPU=GPU)
+        kernel1 = package.kern.RBF()
+        kernel2 = package.kern.Matern52()
+        kernel1_summation = package.kern.Summation(kernel1)
+        kernel2_summation = package.kern.Summation(kernel2)
+        kernel_addition_summation = package.kern.AdditionKernel([kernel1_summation, kernel2_summation])
+        gp = package.GP(X_train, Y_train, kernel_addition_summation, 1e-4, GPU=GPU)
         gp.optimize(messages=False)
         err = np.max(np.abs(gp.params / params_ref - 1))
         self.assertTrue(err < 1e-4)
@@ -49,7 +49,7 @@ class Test(unittest.TestCase):
         rel_err = np.max(np.abs((pred_test - Y_test) / Y_test))
         self.assertTrue(rel_err < 0.1)
         gp.save("model")
-        err = np.max(np.abs(BBMM.GP.load("model.npz", GPU).predict(X_test) - pred_test))
+        err = np.max(np.abs(package.GP.load("model.npz", GPU).predict(X_test) - pred_test))
         self.assertTrue(err < 1e-10)
         os.remove("model.npz")
 
