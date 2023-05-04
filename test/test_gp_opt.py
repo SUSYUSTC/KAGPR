@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from get_package import package
+import GPR
 import GPy
 import unittest
 
@@ -10,15 +10,15 @@ class Test(unittest.TestCase):
         X = np.load("./X_test.npy")
         Y = np.load("./Y_test.npy")
         noise = 1e-5
-        k = package.kern.RBF()
+        k = GPR.kern.RBF()
         lengthscale = 1.0
         variance = 1.0
         k.set_lengthscale(lengthscale)
         k.set_variance(variance)
         begin = time.time()
-        gp = package.GP(X, Y, k, noise, GPU=GPU)
+        gp = GPR.GP(X, Y, k, noise, GPU=GPU)
         gp.optimize(messages=False)
-        print("package GP Time", time.time() - begin)
+        print("GPR GP Time", time.time() - begin)
 
         GPy_kern = GPy.kern.RBF(input_dim=X.shape[1], lengthscale=lengthscale, variance=variance)
         begin = time.time()

@@ -1,5 +1,5 @@
 import numpy as np
-from get_package import package
+import GPR
 import unittest
 
 np.random.seed(0)
@@ -26,11 +26,11 @@ Y = y(X)
 
 class Test(unittest.TestCase):
     def test_cpu(self):
-        stationary_kernel = package.kern.RBF()
+        stationary_kernel = GPR.kern.RBF()
         stationary_kernel.set_lengthscale(lengthscale)
         stationary_kernel.set_variance(variance)
-        kern = package.kern.FullDerivative(stationary_kernel, n, d)
-        bbmm = package.BBMM(kern, nGPU=0, verbose=False)
+        kern = GPR.kern.FullDerivative(stationary_kernel, n, d)
+        bbmm = GPR.BBMM(kern, nGPU=0, verbose=False)
         bbmm.initialize(X, noise)
         bbmm.set_preconditioner(500, nGPU=0)
         bbmm.solve_iter(Y, thres=1e-8)
@@ -39,11 +39,11 @@ class Test(unittest.TestCase):
         self.assertTrue(err < 1e-5)
 
     def test_gpu(self):
-        stationary_kernel = package.kern.RBF()
+        stationary_kernel = GPR.kern.RBF()
         stationary_kernel.set_lengthscale(lengthscale)
         stationary_kernel.set_variance(variance)
-        kern = package.kern.FullDerivative(stationary_kernel, n, d)
-        bbmm = package.BBMM(kern, nGPU=1, verbose=False)
+        kern = GPR.kern.FullDerivative(stationary_kernel, n, d)
+        bbmm = GPR.BBMM(kern, nGPU=1, verbose=False)
         bbmm.initialize(X, noise)
         bbmm.set_preconditioner(500, nGPU=0)
         bbmm.solve_iter(Y, thres=1e-8)

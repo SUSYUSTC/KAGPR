@@ -1,10 +1,10 @@
-from get_package import package
+import GPR
 import numpy as np
 import GPy
 import unittest
 
-rbf = package.kern.RBF()
-matern32 = package.kern.Matern32()
+rbf = GPR.kern.RBF()
+matern32 = GPR.kern.Matern32()
 np.random.seed(0)
 N = 10
 d = 5
@@ -15,8 +15,8 @@ noise = 1e-4
 
 class Test(unittest.TestCase):
     def setUp(self):
-        prod = package.kern.ProductKernel([rbf, matern32], dims=[slice(0, d), slice(d, 2 * d)])
-        self.gp = package.GP(X, Y, prod, noise)
+        prod = GPR.kern.ProductKernel([rbf, matern32], dims=[slice(0, d), slice(d, 2 * d)])
+        self.gp = GPR.GP(X, Y, prod, noise)
         self.gp.optimize()
         kern = GPy.kern.Prod([GPy.kern.RBF(d, active_dims=np.arange(0, d)), GPy.kern.Matern32(d, active_dims=np.arange(d, 2 * d))])
         self.model = GPy.models.GPRegression(X, Y, kernel=kern, noise_var=noise)

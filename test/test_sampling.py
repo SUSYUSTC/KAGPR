@@ -1,4 +1,4 @@
-from get_package import package
+import GPR
 import numpy as np
 import GPy
 import unittest
@@ -13,7 +13,7 @@ batch = min(4096, N)
 thres = 1e-6
 N_init = 500
 bs = 100
-BBMM_kernels = [package.kern.RBF(), package.kern.Matern32(), package.kern.Matern52()]
+BBMM_kernels = [GPR.kern.RBF(), GPR.kern.Matern32(), GPR.kern.Matern52()]
 GPy_kernels = [GPy.kern.RBF, GPy.kern.Matern32, GPy.kern.Matern52]
 
 
@@ -21,7 +21,7 @@ class Test(unittest.TestCase):
     def _run(self, i):
         bbmm_kernel = BBMM_kernels[i]
         bbmm_kernel.set_all_ps([variance, lengthscale])
-        bbmm = package.BBMM(bbmm_kernel, nGPU=1, file=None, verbose=False)
+        bbmm = GPR.BBMM(bbmm_kernel, nGPU=1, file=None, verbose=False)
         bbmm.initialize(X, noise, batch=batch)
         bbmm.set_preconditioner(N_init, nGPU=1, debug=True)
         woodbury_vec_iter = bbmm.solve_iter(Y, thres=thres, block_size=bs, compute_gradient=True, random_seed=0, compute_loglikelihood=False, lanczos_n_iter=20, debug=False, max_iter=1000)

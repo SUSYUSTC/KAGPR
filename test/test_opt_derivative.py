@@ -1,5 +1,5 @@
 import numpy as np
-from get_package import package
+import GPR
 import unittest
 
 np.random.seed(0)
@@ -30,12 +30,12 @@ ref_factor_order = np.array([5.02491805e+00, 2.73296982e+00, 8.65480936e-01, 1.0
 
 class Test(unittest.TestCase):
     def _run(self, optfactor, split_type, ref):
-        stationary_kernel = package.kern.RBF()
+        stationary_kernel = GPR.kern.RBF()
         stationary_kernel.set_lengthscale(lengthscale)
         stationary_kernel.set_variance(variance)
-        kernel = package.kern.FullDerivative(stationary_kernel, n, d, optfactor=optfactor, likelihood_split_type = split_type)
+        kernel = GPR.kern.FullDerivative(stationary_kernel, n, d, optfactor=optfactor, likelihood_split_type = split_type)
         noise = [1e-4] * len(kernel.splits)
-        gp = package.GP(X, Y, kernel, noise)
+        gp = GPR.GP(X, Y, kernel, noise)
         gp.optimize(messages=False)
         err = (gp.params - ref)/ref
         self.assertTrue(np.max(np.abs(err)) < 1e-4)

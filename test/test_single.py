@@ -1,4 +1,4 @@
-from get_package import package
+import GPR
 import numpy as np
 import unittest
 
@@ -19,7 +19,7 @@ class Test(unittest.TestCase):
     def _run(self, nGPU, kern, it):
         kernel = kern()
         kernel.set_all_ps([variance, lengthscale])
-        bbmm = package.BBMM(kernel, nGPU=nGPU, file=None, verbose=False)
+        bbmm = GPR.BBMM(kernel, nGPU=nGPU, file=None, verbose=False)
         bbmm.initialize(X, noise)
         bbmm.set_preconditioner(N_init, nGPU=0)
         bbmm.solve_iter(Y)
@@ -29,22 +29,22 @@ class Test(unittest.TestCase):
         self.assertTrue(err < 1e-5)
 
     def test_CPU_RBF(self):
-        self._run(0, package.kern.RBF, 7)
+        self._run(0, GPR.kern.RBF, 7)
 
     def test_GPU_RBF(self):
-        self._run(1, package.kern.RBF, 7)
+        self._run(1, GPR.kern.RBF, 7)
 
     def test_CPU_Matern32(self):
-        self._run(0, package.kern.Matern32, 11)
+        self._run(0, GPR.kern.Matern32, 11)
 
     def test_GPU_Matern32(self):
-        self._run(1, package.kern.Matern32, 11)
+        self._run(1, GPR.kern.Matern32, 11)
 
     def test_CPU_Matern52(self):
-        self._run(0, package.kern.Matern52, 9)
+        self._run(0, GPR.kern.Matern52, 9)
 
     def test_GPU_Matern52(self):
-        self._run(1, package.kern.Matern52, 9)
+        self._run(1, GPR.kern.Matern52, 9)
 
 
 if __name__ == '__main__':

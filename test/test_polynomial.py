@@ -1,6 +1,6 @@
 import numpy as np
 import time
-from get_package import package
+import GPR
 import GPy
 import unittest
 
@@ -15,13 +15,13 @@ class Test(unittest.TestCase):
         C = np.random.random((nd, 1))
         Y = (X**np.pi).dot(C)
         noise = 1e-5
-        k = package.kern.Polynomial(2, opt=True)
-        kp = package.kern.Polynomial(1.999)
-        kn = package.kern.Polynomial(2.001)
+        k = GPR.kern.Polynomial(2, opt=True)
+        kp = GPR.kern.Polynomial(1.999)
+        kn = GPR.kern.Polynomial(2.001)
         dK_dorder_ref = (kp.K(X, X2) - kn.K(X, X2)) / 0.002
         dK_dorder = k.dK_dorder(X, X2)
         err = np.max(np.abs(dK_dorder - dK_dorder_ref))
-        gp = package.GP(X, Y, k, noise, GPU=GPU)
+        gp = GPR.GP(X, Y, k, noise, GPU=GPU)
         gp.optimize(messages=False)
         err = np.abs(gp.params[0] - np.pi)
         self.assertTrue(err < 1e-6)

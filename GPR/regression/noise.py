@@ -4,7 +4,7 @@ import numpy as np
 from ..kern import Kernel
 from .. import utils
 
-general_float = tp.Union[float,np.float]
+general_float = tp.Union[float,np.float64]
 class Noise(object):
     values: tp.List[float]
     def __init__(self, value: tp.Union[general_float, tp.Iterable[general_float]], n: int) -> None:

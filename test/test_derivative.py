@@ -1,6 +1,6 @@
 import numpy as np
 import GPy
-from get_package import package
+import GPR
 import time
 from GPy.core.parameterization import Param
 import unittest
@@ -102,11 +102,11 @@ Y = y(X)
 class Test(unittest.TestCase):
     def _run(self, kernelname):
         kn = NumericalDerivativeKernel((n + 1) * d, n, getattr(GPy.kern, kernelname), lengthscale=lengthscale, variance=variance, diff=1e-4)
-        stationary_kernel = getattr(package.kern, kernelname)()
+        stationary_kernel = getattr(GPR.kern, kernelname)()
         stationary_kernel.set_lengthscale(lengthscale)
         stationary_kernel.set_variance(variance)
-        ka = package.kern.FullDerivative(stationary_kernel, n, d)
-        #kda = package.kern.Derivative(getattr(package.kern, kernelname), n, d)
+        ka = GPR.kern.FullDerivative(stationary_kernel, n, d)
+        #kda = GPR.kern.Derivative(getattr(GPR.kern, kernelname), n, d)
         err_K_diag = np.max(np.abs(np.diag(ka.K(X)) - ka.Kdiag(X)))
         err_dK_dl_diag = np.max(np.abs(np.diag(ka.dK_dps[1](X)) - ka.dK_dldiag(X)))
 

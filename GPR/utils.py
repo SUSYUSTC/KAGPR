@@ -3,7 +3,7 @@ import numpy as np
 from collections.abc import Iterable
 
 T = tp.TypeVar('T')
-general_float = tp.Union[float, np.float]
+general_float = tp.Union[float, np.float64]
 
 
 def make_desired_size(value: tp.Union[T, tp.List[T]], n: int) -> tp.List[T]:

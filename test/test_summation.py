@@ -1,6 +1,6 @@
 import numpy as np
 import unittest
-from get_package import package
+import GPR
 import os
 
 
@@ -21,8 +21,8 @@ class Test(unittest.TestCase):
         X_test = [np.random.random((n, 10)) for n in sizes]
         Y_train = np.array([func(x) for x in X_train])[:, None]
         Y_test = np.array([func(x) for x in X_test])[:, None]
-        kernel = package.kern.RBF()
-        kernel_summation = package.kern.Summation(kernel)
+        kernel = GPR.kern.RBF()
+        kernel_summation = GPR.kern.Summation(kernel)
         K_full = kernel.K(np.concatenate(X_train), np.concatenate(X_test))
         K = kernel_summation.K(X_train, X_test)
         self.assertTrue(K.shape == (len(sizes), len(sizes)))
@@ -38,7 +38,7 @@ class Test(unittest.TestCase):
                     err = np.abs(K[i, j] - np.sum(K_full[cumsum[i]:cumsum[i + 1], cumsum[j]: cumsum[j + 1]]))
                     self.assertTrue(err < 1e-10)
 
-        gp = package.GP(X_train, Y_train, kernel_summation, 1e-4, GPU=GPU)
+        gp = GPR.GP(X_train, Y_train, kernel_summation, 1e-4, GPU=GPU)
         gp.optimize(messages=False)
         self.assertTrue(np.max(np.abs(gp.params / params_ref - 1)) < 1e-4)
         pred_train = gp.predict(X_train)
@@ -49,7 +49,7 @@ class Test(unittest.TestCase):
         rel_err = np.max(np.abs((pred_test - Y_test) / Y_test))
         self.assertTrue(rel_err < 0.1)
         gp.save("model")
-        err = np.max(np.abs(package.GP.load("model.npz", False).predict(X_test) - pred_test))
+        err = np.max(np.abs(GPR.GP.load("model.npz", False).predict(X_test) - pred_test))
         self.assertTrue(err < 1e-10)
         os.remove("model.npz")
 

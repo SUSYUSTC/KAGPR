@@ -1,5 +1,5 @@
-from get_package import package
-from get_package import Adam
+import GPR
+from GPR.regression.opt import Adam
 import numpy as np
 import sys
 import unittest
@@ -23,9 +23,9 @@ class Test(unittest.TestCase):
         lr = 0.5
         opt = Adam(lengthscale, variance, noise, clamp_noise=1e-5, init_lr=lr)
         while True:
-            kernel = package.kern.RBF()
+            kernel = GPR.kern.RBF()
             kernel.set_all_ps([opt.variance, opt.lengthscale])
-            bbmm = package.BBMM(kernel, nGPU=1, file=None, verbose=False)
+            bbmm = GPR.BBMM(kernel, nGPU=1, file=None, verbose=False)
             bbmm.initialize(X, opt.noise, batch=batch)
             bbmm.set_preconditioner(N_init, nGPU=0)
             # must use the same random seed through the optimization!
@@ -49,8 +49,8 @@ class Test(unittest.TestCase):
         self.assertTrue(np.abs(opt.lengthscale - 3.15) < 0.1)
         self.assertTrue(np.abs(opt.variance - 1300) < 50)
         self.assertTrue(np.abs(opt.noise - 0.013) < 0.001)
-        kernel = package.kern.RBF()
-        bbmm = package.BBMM(kernel, nGPU=1, file=None, verbose=False)
+        kernel = GPR.kern.RBF()
+        bbmm = GPR.BBMM(kernel, nGPU=1, file=None, verbose=False)
         kernel.set_all_ps([opt.variance, opt.lengthscale])
         bbmm.initialize(X, opt.noise, batch=batch)
         bbmm.set_preconditioner(N_init, nGPU=0)
