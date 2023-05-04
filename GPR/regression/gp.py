@@ -101,7 +101,7 @@ class GP(object):
                 self.ll = self.ll.get()
                 self.gradient = self.gradient.get()
 
-    def save(self, path: str) -> None:
+    def to_dict(self):
         if self.GPU:
             if self.split:
                 X = self.X.data[0]
@@ -127,6 +127,10 @@ class GP(object):
         if self.grad:
             data['ll'] = self.ll
             data['gradient'] = self.gradient
+        return data
+
+    def save(self, path: str) -> None:
+        data = self.to_dict()
         np.savez(path, **data)
 
     @classmethod
