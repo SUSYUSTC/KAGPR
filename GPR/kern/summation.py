@@ -15,6 +15,7 @@ class Summation(Kernel):
         self.ps_bound = self.kernel.ps_bound
         self.transformations = self.kernel.transformations
         self.nout = self.kernel.nout
+        self.n_likelihood_splits = self.kernel.n_likelihood_splits
         self.dK_dps = []
         for i in range(len(self.kernel.ps)):
             def func(X, X2=None, i=i, **kwargs):
@@ -32,6 +33,9 @@ class Summation(Kernel):
         K = xp.diff(xp.cumsum(K, axis=1)[:, indices2 - 1], prepend=0, axis=1)
         return K
 
+    def split_likelihood(self, Nin: int) -> tp.List[np.ndarray]:
+        return self.kernel.split_likelihood(Nin)
+
     def _fake_K(self, method, X, X2=None):
         if X2 is None:
             X2 = X
@@ -39,7 +43,10 @@ class Summation(Kernel):
         lengths1 = np.array([len(item) for item in X])
         lengths2 = np.array([len(item) for item in X2])
         K = method(xp.concatenate(X), xp.concatenate(X2))
-        return self.sum_by_length(K, lengths1, lengths2)
+        # kernels with multiple outputs (e.g. FullDerivative) are ordered as blocks of outputs, sum within each block
+        N1 = np.sum(lengths1)
+        N2 = np.sum(lengths2)
+        return xp.concatenate([xp.concatenate([self.sum_by_length(K[N1 * i:N1 * (i + 1), N2 * j:N2 * (j + 1)], lengths1, lengths2) for j in range(self.nout)], axis=1) for i in range(self.nout)], axis=0)
 
     @Cache('g')
     def K(self, X, X2=None):
